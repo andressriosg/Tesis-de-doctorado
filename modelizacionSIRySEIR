@@ -1,0 +1,1129 @@
+# Solución aproximada del modelo SIR 
+sir <- function(t,x,parameter){
+  S <- x[1]
+  I <- x[2]
+  R <- x[3]
+  with(as.list(parameter),
+       {
+         dS <- parameter[1] - parameter[2]*S*I - parameter[4]*S # https://datosmacro.expansion.com/
+         dI <- parameter[2]*S*I - parameter[3]*I - parameter[4]*I #
+         dR <- parameter[3]*I - parameter[4]*R
+         res <- c(dS, dI, dR)
+         list(res)
+       })
+}
+
+# Los datos simulados para el modelo SIR 
+library(deSolve)
+solution_ode_sir <- ode(y= c(6, 0.1, 0), 0:101, sir, 
+                        c(2, 0.3, 0.5, 0.2))
+
+solution_1_ode_sir <- matrix(0, nrow = 102, ncol = 4)
+solution_1_ode_sir[, 1] = solution_ode_sir[, 1]
+
+for (i in 1:51) {
+  solution_1_ode_sir[2*i, 2] = solution_ode_sir[2*i, 2] + 0.2
+  solution_1_ode_sir[(2*i - 1), 2] = solution_ode_sir[(2*i - 1), 2] - 0.2
+} 
+plot(solution_1_ode_sir[, 2], type = "l")
+for (i in 1:51) {
+  solution_1_ode_sir[2*i, 3] = solution_ode_sir[2*i, 3] + 0.1
+  solution_1_ode_sir[(2*i - 1), 3] = solution_ode_sir[(2*i - 1), 3] - 0.1
+} 
+plot(solution_1_ode_sir[, 3], type = "l")
+for (i in 1:51) {
+  solution_1_ode_sir[2*i, 4] = solution_ode_sir[2*i, 4] + 0.3
+  solution_1_ode_sir[(2*i - 1), 4] = solution_ode_sir[(2*i - 1), 4] - 0.3
+} 
+plot(solution_1_ode_sir[, 4], type = "l")
+
+# Estimadores del modelo SIR para la primer función de pérdida  
+
+a = sum(solution_1_ode_sir[1:100, 2]*solution_1_ode_sir[1:100, 3]*solution_1_ode_sir[2:101, 3]) -
+  sum(solution_1_ode_sir[1:100, 2]*solution_1_ode_sir[1:100, 3]*solution_1_ode_sir[1:100, 3]) +
+  0.2*sum(solution_1_ode_sir[1:100, 2]*solution_1_ode_sir[1:100, 3]*solution_1_ode_sir[1:100, 3])
+  
+b = - sum(solution_1_ode_sir[1:100, 3]*solution_1_ode_sir[2:101, 3]) +
+  sum(solution_1_ode_sir[1:100, 3]*solution_1_ode_sir[1:100, 3]) - 
+  0.2*sum(solution_1_ode_sir[1:100, 3]*solution_1_ode_sir[1:100, 3])
+
+beta_1_sir = (a*sum(solution_1_ode_sir[1:100, 3]*solution_1_ode_sir[1:100, 3]) + 
+                b*sum(solution_1_ode_sir[1:100, 2]*(solution_1_ode_sir[1:100, 3])^2))/
+  (sum((solution_1_ode_sir[1:100, 2])^2*(solution_1_ode_sir[1:100, 3])^2)*
+     sum((solution_1_ode_sir[1:100, 3])^2) - 
+     (sum(solution_1_ode_sir[1:100, 2]*(solution_1_ode_sir[1:100, 3])^2))^2)
+
+gamma_1_sir = (b*sum((solution_1_ode_sir[1:100, 2])^2*(solution_1_ode_sir[1:100, 3])^2) + 
+               a*sum(solution_1_ode_sir[1:100, 2]*(solution_1_ode_sir[1:100, 3])^2))/
+  (sum((solution_1_ode_sir[1:100, 2])^2*(solution_1_ode_sir[1:100, 3])^2)*
+     sum((solution_1_ode_sir[1:100, 3])^2) - 
+     (sum(solution_1_ode_sir[1:100, 2]*(solution_1_ode_sir[1:100, 3])^2))^2)
+
+library(deSolve)
+sir_ode_per_1 <- ode(y= c(6, 0.1, 0), 0:101, sir, 
+                     c(2, beta_1_sir, gamma_1_sir, 0.2))
+
+sir_ode_data_per111 <- data.frame(solution_ode_sir, solution_1_ode_sir, 
+                                sir_ode_per_1)
+
+library(ggplot2)
+color_suscep <- c("Datos" = 'cornflowerblue', "Solución\n real" = "darkblue", 
+                  "Solución\n estimada" = "blue1")
+p1p3 <- ggplot(data = sir_ode_data_per111) + 
+  geom_point(aes(x = sir_ode_data_per111[, 1], y = sir_ode_data_per111[, 6], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población susceptible') + 
+  geom_line(aes(x = sir_ode_data_per111[, 1], y = sir_ode_data_per111[, 2], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = sir_ode_data_per111[, 1], y = sir_ode_data_per111[, 10], color = "Solución\n estimada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_suscep, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+
+color_infect <- c("Datos" = 'orchid1', "Solución\n real" = "orangered2", 
+                  "Solución\n estimada" = "red4")
+p3p3 <- ggplot(data = sir_ode_data_per111) + 
+  geom_point(aes(x = sir_ode_data_per111[, 1], y = sir_ode_data_per111[, 7], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población infectada') + 
+  geom_line(aes(x = sir_ode_data_per111[, 1], y = sir_ode_data_per111[, 3], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = sir_ode_data_per111[, 1], y = sir_ode_data_per111[, 11], color = "Solución\n estimada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_infect, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+
+color_recupe <- c("Datos" = 'springgreen1', "Solución\n real" = "seagreen4", 
+                  "Solución\n estimada" = "darkslategray")
+
+p4p3 <- ggplot(data = sir_ode_data_per111) + 
+  geom_point(aes(x = sir_ode_data_per111[, 1], y = sir_ode_data_per111[, 8], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población recuperada') + 
+  geom_line(aes(x = sir_ode_data_per111[, 1], y = sir_ode_data_per111[, 4], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = sir_ode_data_per111[, 1], y = sir_ode_data_per111[, 12], color = "Solución\n estimada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_recupe, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+# install.packages("gridExtra")
+library(gridExtra)
+grid.arrange(p1p3, p3p3, p4p3, ncol = 2)
+
+# Estimadores del modelo SIR para la segunda función de pérdida 
+
+e = - sum(solution_1_ode_sir[2:101, 2]*solution_1_ode_sir[1:100, 2]*
+          solution_1_ode_sir[1:100, 3]) +
+  sum((solution_1_ode_sir[1:100, 2])^2*solution_1_ode_sir[1:100, 3]) +
+  2*sum(solution_1_ode_sir[1:100, 2]*solution_1_ode_sir[1:100, 3]) +
+  sum(solution_1_ode_sir[2:101, 3]*solution_1_ode_sir[1:100, 2]*
+        solution_1_ode_sir[1:100, 3]) - 
+  sum(solution_1_ode_sir[1:100, 2]*(solution_1_ode_sir[1:100, 3])^2) - 
+  0.2*(sum((solution_1_ode_sir[1:100, 2])^2*solution_1_ode_sir[1:100, 3]) - 
+         sum(solution_1_ode_sir[1:100, 2]*(solution_1_ode_sir[1:100, 3])^2))
+  
+f = - sum(solution_1_ode_sir[2:101, 3]*solution_1_ode_sir[1:100, 3]) + 
+  sum((solution_1_ode_sir[1:100, 3])^2) +
+  sum(solution_1_ode_sir[2:101, 4]*solution_1_ode_sir[1:100, 3]) - 
+  sum(solution_1_ode_sir[1:100, 4]*solution_1_ode_sir[1:100, 3]) - 
+  0.2*(sum((solution_1_ode_sir[1:100, 3])^2) - 
+         sum(solution_1_ode_sir[1:100, 4]*solution_1_ode_sir[1:100, 3]))
+
+beta_2_sir = (2*e*sum((solution_1_ode_sir[1:100, 3])^2) 
+              + f*sum(solution_1_ode_sir[1:100, 2]*(solution_1_ode_sir[1:100, 3])^2))/
+  (4*sum((solution_1_ode_sir[1:100, 2])^2*(solution_1_ode_sir[1:100, 3])^2)*
+     sum((solution_1_ode_sir[1:100, 3])^2) - 
+     (sum(solution_1_ode_sir[1:100, 2]*(solution_1_ode_sir[1:100, 3])^2))^2)
+
+gamma_2_sir = (2*f*sum((solution_1_ode_sir[1:100, 2])^2*(solution_1_ode_sir[1:100, 3])^2) 
+               + e*sum(solution_1_ode_sir[1:100, 2]*(solution_1_ode_sir[1:100, 3])^2))/
+  (4*sum((solution_1_ode_sir[1:100, 2])^2*(solution_1_ode_sir[1:100, 3])^2)*
+     sum((solution_1_ode_sir[1:100, 3])^2) - 
+     (sum(solution_1_ode_sir[1:100, 2]*(solution_1_ode_sir[1:100, 3])^2))^2)
+
+library(deSolve)
+sir_ode_per_2 <- ode(y= c(6, 0.1, 0), 0:101, sir, 
+                     c(2, beta_2_sir, gamma_2_sir, 0.2))
+
+sir_ode_data_per1 <- data.frame(solution_ode_sir, solution_1_ode_sir, 
+                                sir_ode_per_2)
+
+library(ggplot2)
+color_suscep <- c("Datos" = 'cornflowerblue', "Solución\n real" = "darkblue", 
+                  "Solución\n estimada" = "blue1")
+p1p2 <- ggplot(data = sir_ode_data_per1) + 
+  geom_point(aes(x = sir_ode_data_per1[, 1], y = sir_ode_data_per1[, 6], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población susceptible') + 
+  geom_line(aes(x = sir_ode_data_per1[, 1], y = sir_ode_data_per1[, 2], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = sir_ode_data_per1[, 1], y = sir_ode_data_per1[, 10], color = "Solución\n estimada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_suscep, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+
+color_infect <- c("Datos" = 'orchid1', "Solución\n real" = "orangered2", 
+                  "Solución\n estimada" = "red4")
+p3p2 <- ggplot(data = sir_ode_data_per1) + 
+  geom_point(aes(x = sir_ode_data_per1[, 1], y = sir_ode_data_per1[, 7], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población infectada') + 
+  geom_line(aes(x = sir_ode_data_per1[, 1], y = sir_ode_data_per1[, 3], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = sir_ode_data_per1[, 1], y = sir_ode_data_per1[, 11], color = "Solución\n estimada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_infect, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+
+color_recupe <- c("Datos" = 'springgreen1', "Solución\n real" = "seagreen4", 
+                  "Solución\n estimada" = "darkslategray")
+
+p4p2 <- ggplot(data = ode_data_per1) + 
+  geom_point(aes(x = sir_ode_data_per1[, 1], y = sir_ode_data_per1[, 8], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población recuperada') + 
+  geom_line(aes(x = sir_ode_data_per1[, 1], y = sir_ode_data_per1[, 4], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = sir_ode_data_per1[, 1], y = sir_ode_data_per1[, 12], color = "Solución\n estimada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_recupe, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+# install.packages("gridExtra")
+library(gridExtra)
+grid.arrange(p1p2, p3p2, p4p2, ncol = 2)
+
+# Solución aproximada del modelo SEIR
+
+seir <- function(t,x,parameter){
+  S <- x[1]
+  E <- x[2]
+  I <- x[3]
+  R <- x[4]
+  with(as.list(parameter),
+       {
+         dS <- parameter[1] - parameter[2]*S*I - parameter[5]*S # https://datosmacro.expansion.com/
+         dE <- parameter[2]*S*I - parameter[3]*E - parameter[5]*E #
+         dI <- parameter[3]*E - parameter[4]*I - parameter[5]*I
+         dR <- parameter[4]*I - parameter[5]*R
+         res <- c(dS, dE, dI, dR)
+         list(res)
+       })
+}
+
+# install.packages("deSolve")
+library(deSolve)
+solution_ode <- ode(y= c(12, 0, 0.1, 0), 0:101, seir, 
+                    c(2, 0.3, 0.4, 0.5, 0.2))
+plot(solution_ode[, 2], type = "l")
+
+solution_1_ode <- matrix(0, nrow = 102, ncol = 5)
+solution_1_ode[, 1] = solution_ode[, 1]
+
+for (i in 1:51) {
+  solution_1_ode[2*i, 2] = solution_ode[2*i, 2] + 0.5
+  solution_1_ode[(2*i - 1), 2] = solution_ode[(2*i - 1), 2] - 0.5
+} 
+plot(solution_1_ode[, 2], type = "l")
+for (i in 1:51) {
+  solution_1_ode[2*i, 3] = solution_ode[2*i, 3] + 0.2
+  solution_1_ode[(2*i - 1), 3] = solution_ode[(2*i - 1), 3] - 0.2
+} 
+plot(solution_1_ode[, 3], type = "l")
+for (i in 1:51) {
+  solution_1_ode[2*i, 4] = solution_ode[2*i, 4] + 0.1
+  solution_1_ode[(2*i - 1), 4] = solution_ode[(2*i - 1), 4] - 0.1
+} 
+plot(solution_1_ode[, 4], type = "l")
+for (i in 1:51) {
+  solution_1_ode[2*i, 5] = solution_ode[2*i, 5] + 0.2
+  solution_1_ode[(2*i - 1), 5] = solution_ode[(2*i - 1), 5] - 0.2
+} 
+plot(solution_1_ode[, 5], type = "l")
+
+# Estimadores del modelo SEIR para la primer función de pérdida 
+
+c = sum(solution_1_ode[2:101, 4]*solution_1_ode[1:100, 3]) - 
+  sum(solution_1_ode[1:100, 4]*solution_1_ode[1:100, 3]) + 
+  0.2*sum(solution_1_ode[1:100, 4]*solution_1_ode[1:100, 3])
+
+d = -sum(solution_1_ode[2:101, 4]*solution_1_ode[1:100, 4]) +
+  sum(solution_1_ode[1:100, 4]*solution_1_ode[1:100, 4]) - 
+  0.2*sum(solution_1_ode[1:100, 4]*solution_1_ode[1:100, 4])
+
+upsilon_1_e = (c*sum(solution_1_ode[1:100, 4]*solution_1_ode[1:100, 4]) + 
+                 d*sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4]))/
+  (sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 3])*
+     sum(solution_1_ode[1:100, 4]*solution_1_ode[1:100, 4]) - 
+     (sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4]))^2)
+
+gamma_1_e = (d*sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 3]) + 
+               c*sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4]))/
+  (sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 3])*
+     sum(solution_1_ode[1:100, 4]*solution_1_ode[1:100, 4]) - 
+     (sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4]))^2)
+
+solution_s_ode <- ode(y= c(4, 0, 0.1, 0), 0:101, seir, 
+                         c(5, 0.3, upsilon_1_e, gamma_1_e, 0.2))
+
+plot(solution_ode[, 2], type = "l")
+lines(solution_s_ode[, 2], type = "l", col = "red")
+
+plot(solution_ode[, 3], type = "l")
+lines(solution_s_ode[, 3], type = "l", col = "red")
+
+plot(solution_ode[, 4], type = "l")
+lines(solution_s_ode[, 4], type = "l", col = "red")
+
+plot(solution_ode[, 5], type = "l")
+lines(solution_s_ode[, 5], type = "l", col = "red")
+
+library(deSolve)
+solution_ode_per_1 <- ode(y= c(12, 0, 0.1, 0), 0:101, seir, 
+                          c(2, 0.3, upsilon_1_e, gamma_1_e, 0.2))
+ode_data_per1 <- data.frame(solution_ode, solution_1_ode, solution_ode_per_1)
+
+# install.packages("ggplot2")
+# install.packages("tidyverse")
+library(ggplot2)
+library(tidyverse)
+
+color_suscep <- c("Datos" = 'cornflowerblue', "Solución\n real" = "darkblue", 
+                  "Solución\n estimada" = "blue1")
+p1p1 <- ggplot(data = ode_data_per1) + 
+  geom_point(aes(x = ode_data_per1[, 1], y = ode_data_per1[, 7], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población susceptible') + 
+  geom_line(aes(x = ode_data_per1[, 1], y = ode_data_per1[, 2], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = ode_data_per1[, 1], y = ode_data_per1[, 12], color = "Solución\n estimada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_suscep, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+
+color_expues <- c("Datos" = 'darkgoldenrod1', "Solución\n real" = "chocolate1", 
+                  "Solución\n estimada" = "darkorange4")
+p2p1 <- ggplot(data = ode_data_per1) + 
+  geom_point(aes(x = ode_data_per1[, 1], y = ode_data_per1[, 8], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población expuesta') + 
+  geom_line(aes(x = ode_data_per1[, 1], y = ode_data_per1[, 3], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = ode_data_per1[, 1], y = ode_data_per1[, 13], color = "Solución\n estimada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_expues, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+
+color_infect <- c("Datos" = 'orchid1', "Solución\n real" = "orangered2", 
+                  "Solución\n estimada" = "red4")
+p3p1 <- ggplot(data = ode_data_per1) + 
+  geom_point(aes(x = ode_data_per1[, 1], y = ode_data_per1[, 9], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población infectada') + 
+  geom_line(aes(x = ode_data_per1[, 1], y = ode_data_per1[, 4], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = ode_data_per1[, 1], y = ode_data_per1[, 14], color = "Solución\n estimada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_infect, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+
+color_recupe <- c("Datos" = 'springgreen1', "Solución\n real" = "seagreen4", 
+                  "Solución\n estimada" = "darkslategray")
+
+p4p1 <- ggplot(data = ode_data_per1) + 
+  geom_point(aes(x = ode_data_per1[, 1], y = ode_data_per1[, 10], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población recuperada') + 
+  geom_line(aes(x = ode_data_per1[, 1], y = ode_data_per1[, 5], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = ode_data_per1[, 1], y = ode_data_per1[, 15], color = "Solución\n estimada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_recupe, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+# install.packages("gridExtra")
+library(gridExtra)
+grid.arrange(p1p1, p2p1, p3p1, p4p1)
+
+# Estimadores del modelo SEIR para la segunda función de pérdida 
+
+g = -sum(solution_1_ode[2:101, 2]*solution_1_ode[1:100, 2]*solution_1_ode[1:100, 4]) + 
+  sum(solution_1_ode[1:100, 2]*solution_1_ode[1:100, 2]*solution_1_ode[1:100, 4]) + 
+  2*sum(solution_1_ode[1:100, 2]*solution_1_ode[1:100, 4]) + 
+  sum(solution_1_ode[1:100, 2]*solution_1_ode[2:101, 3]*solution_1_ode[1:100, 4]) -
+  sum(solution_1_ode[1:100, 2]*solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4]) -
+  0.2*(sum(solution_1_ode[1:100, 2]*solution_1_ode[1:100, 2]*solution_1_ode[1:100, 4]) - 
+         sum(solution_1_ode[1:100, 2]*solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4]))
+  
+h = -sum(solution_1_ode[2:101, 3]*solution_1_ode[1:100, 3]) +
+  sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 3]) + 
+  sum(solution_1_ode[2:101, 3]*solution_1_ode[1:100, 4]) - 
+  sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4]) - 
+  0.2*(sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 3]) - 
+         sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4]))
+
+l = - sum(solution_1_ode[2:101, 4]*solution_1_ode[1:100, 4]) +
+  sum(solution_1_ode[1:100, 4]*solution_1_ode[1:100, 4]) + 
+  sum(solution_1_ode[2:101, 4]*solution_1_ode[1:100, 5]) - 
+  sum(solution_1_ode[1:100, 4]*solution_1_ode[1:100, 5]) - 
+  0.2*(sum(solution_1_ode[1:100, 4]*solution_1_ode[1:100, 4]) - 
+         sum(solution_1_ode[1:100, 4]*solution_1_ode[1:100, 5]))
+
+beta_2_e = (-sum(solution_1_ode[1:100, 2]*solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4])*
+               sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4])*l - 
+               2*sum(solution_1_ode[1:100, 2]*solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4])*
+                    sum(solution_1_ode[1:100, 4]*solution_1_ode[1:100, 4])*h - 
+               4*sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 3])*
+                    sum(solution_1_ode[1:100, 4]*solution_1_ode[1:100, 4])*g + 
+               ((sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4]))^2*g))/
+  ((-8*sum((solution_1_ode[1:100, 2])^2*(solution_1_ode[1:100, 4])^2)*
+      sum((solution_1_ode[1:100, 3])^2)*sum((solution_1_ode[1:100, 4])^2)) + 
+     (2*sum(((solution_1_ode[1:100, 2])^2)*(solution_1_ode[1:100, 4])^2)*
+        (sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4]))^2) + 
+     ((2*(sum(solution_1_ode[1:100, 2]*solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4]))^2)*
+     sum((solution_1_ode[1:100, 4])^2)))
+
+upsilon_2_e = (-2*(sum((solution_1_ode[1:100, 2])^2*(solution_1_ode[1:100, 4])^2)*
+                 sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4])*l + 
+                 2*sum((solution_1_ode[1:100, 2])^2*(solution_1_ode[1:100, 4])^2)*
+                 sum((solution_1_ode[1:100, 4])^2)*h +
+                 sum(solution_1_ode[1:100, 2]*solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4])*
+                 sum((solution_1_ode[1:100, 4])^2)*g))/
+  ((-8*sum((solution_1_ode[1:100, 2])^2*(solution_1_ode[1:100, 4])^2)*
+      sum((solution_1_ode[1:100, 3])^2)*sum((solution_1_ode[1:100, 4])^2)) + 
+     (2*sum(((solution_1_ode[1:100, 2])^2)*(solution_1_ode[1:100, 4])^2)*
+        (sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4]))^2) + 
+     ((2*(sum(solution_1_ode[1:100, 2]*solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4]))^2)*
+        sum((solution_1_ode[1:100, 4])^2)))
+
+gamma_2_e = -(4*sum((solution_1_ode[1:100, 2])^2*(solution_1_ode[1:100, 4])^2)*
+               sum((solution_1_ode[1:100, 3])^2)*l + 
+               2*sum((solution_1_ode[1:100, 2])^2*(solution_1_ode[1:100, 4])^2)*
+               sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4])*h - 
+               (sum(solution_1_ode[1:100, 2]*solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4]))^2*l + 
+               sum(solution_1_ode[1:100, 2]*solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4])*
+               sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4])*g)/
+  ((-8*sum((solution_1_ode[1:100, 2])^2*(solution_1_ode[1:100, 4])^2)*
+      sum((solution_1_ode[1:100, 3])^2)*sum((solution_1_ode[1:100, 4])^2)) + 
+     (2*sum(((solution_1_ode[1:100, 2])^2)*(solution_1_ode[1:100, 4])^2)*
+        (sum(solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4]))^2) + 
+     ((2*(sum(solution_1_ode[1:100, 2]*solution_1_ode[1:100, 3]*solution_1_ode[1:100, 4]))^2)*
+        sum((solution_1_ode[1:100, 4])^2)))
+
+solution_ode_per_2 <- ode(y= c(12, 0, 0.1, 0), 0:101, seir, 
+                        c(2, beta_2_e, upsilon_2_e, gamma_2_e, 0.2))
+
+ode_data <- data.frame(solution_ode, solution_1_ode, solution_ode_per_2)
+
+# install.packages("ggplot2")
+# install.packages("tidyverse")
+library(ggplot2)
+library(tidyverse)
+
+color_suscep <- c("Datos" = 'cornflowerblue', "Solución\n real" = "darkblue", 
+                  "Solución\n estimada" = "blue1")
+p1 <- ggplot(data = ode_data) + 
+  geom_point(aes(x = ode_data[, 1], y = ode_data[, 7], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población susceptible') + 
+  geom_line(aes(x = ode_data[, 1], y = ode_data[, 2], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = ode_data[, 1], y = ode_data[, 12], color = "Solución\n estimada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_suscep, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+
+color_expues <- c("Datos" = 'darkgoldenrod1', "Solución\n real" = "chocolate1", 
+                  "Solución\n estimada" = "darkorange4")
+p2 <- ggplot(data = ode_data) + 
+  geom_point(aes(x = ode_data[, 1], y = ode_data[, 8], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población expuesta') + 
+  geom_line(aes(x = ode_data[, 1], y = ode_data[, 3], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = ode_data[, 1], y = ode_data[, 13], color = "Solución\n estimada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_expues, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+
+color_infect <- c("Datos" = 'orchid1', "Solución\n real" = "orangered2", 
+                  "Solución\n estimada" = "red4")
+p3 <- ggplot(data = ode_data) + 
+  geom_point(aes(x = ode_data[, 1], y = ode_data[, 9], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población infectada') + 
+  geom_line(aes(x = ode_data[, 1], y = ode_data[, 4], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = ode_data[, 1], y = ode_data[, 14], color = "Solución\n estimada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_infect, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+
+color_recupe <- c("Datos" = 'springgreen1', "Solución\n real" = "seagreen4", 
+                  "Solución\n estimada" = "darkslategray")
+
+p4 <- ggplot(data = ode_data) + 
+  geom_point(aes(x = ode_data[, 1], y = ode_data[, 10], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población recuperada') + 
+  geom_line(aes(x = ode_data[, 1], y = ode_data[, 5], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = ode_data[, 1], y = ode_data[, 15], color = "Solución\n estimada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_recupe, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+# install.packages("gridExtra")
+library(gridExtra)
+grid.arrange(p1, p2, p3, p4)
+
+# Suavización de los datos del modelo SIR 
+library(npregfast)
+sua_sus_sir = frfast(as.numeric(solution_1_ode_sir[ , 2]) ~ 
+                       as.numeric(solution_1_ode_sir[ , 1]), model = "np", 
+                     smooth = "kernel", kbin = 4*length(solution_1_ode_sir[ , 2]), 
+                     p = 3)
+sua_sus_sir = data.frame(sua_sus_sir$p)
+plot(solution_1_ode_sir[,1], solution_1_ode_sir[,2], pch = 20)
+lines(sua_sus_sir$X1[seq(4, (4*102), by = 4)], lwd = 2)
+
+sua_inf_sir = frfast(as.numeric(solution_1_ode_sir[ , 3]) ~ 
+                       as.numeric(solution_1_ode_sir[ , 1]), model = "np", 
+                     smooth = "kernel", kbin = 4*length(solution_1_ode_sir[ , 3]),
+                     p = 3)
+sua_inf_sir = data.frame(sua_inf_sir$p)
+plot(solution_1_ode_sir[,1], solution_1_ode_sir[,3], pch = 20)
+lines(sua_inf_sir$X1[seq(4, (4*102), by = 4)], lwd = 2)
+
+sua_rec_sir = frfast(as.numeric(solution_1_ode_sir[ , 4]) ~ 
+                       as.numeric(solution_1_ode_sir[ , 1]), model = "np", 
+                     smooth = "kernel", kbin = 4*length(solution_1_ode_sir[ , 4]),
+                     p = 2)
+sua_rec_sir = data.frame(sua_rec_sir$p)
+plot(solution_1_ode_sir[,1], solution_1_ode_sir[,4], pch = 20)
+lines(sua_rec_sir$X1[seq(4, (4*102), by = 4)], lwd = 2)
+
+solution_1_ode_sir_sua = data.frame(1:102, sua_sus_sir$X1[seq(4, (4*102), by = 4)], 
+                                  sua_inf_sir$X1[seq(4, (4*102), by = 4)], 
+                                  sua_rec_sir$X1[seq(4, (4*102), by = 4)])
+
+# Estimadores del modelo SIR usando los datos suavizados  
+e_1 = - sum(solution_1_ode_sir_sua[2:101, 2]*solution_1_ode_sir_sua[1:100, 2]*
+            solution_1_ode_sir_sua[1:100, 3]) +
+  sum((solution_1_ode_sir_sua[1:100, 2])^2*solution_1_ode_sir_sua[1:100, 3]) +
+  2*sum(solution_1_ode_sir_sua[1:100, 2]*solution_1_ode_sir_sua[1:100, 3]) +
+  sum(solution_1_ode_sir_sua[2:101, 3]*solution_1_ode_sir_sua[1:100, 2]*
+        solution_1_ode_sir_sua[1:100, 3]) - 
+  sum(solution_1_ode_sir_sua[1:100, 2]*(solution_1_ode_sir_sua[1:100, 3])^2) - 
+  0.2*(sum((solution_1_ode_sir_sua[1:100, 2])^2*solution_1_ode_sir_sua[1:100, 3]) - 
+         sum(solution_1_ode_sir_sua[1:100, 2]*(solution_1_ode_sir_sua[1:100, 3])^2))
+
+f_1 = - sum(solution_1_ode_sir_sua[2:101, 3]*solution_1_ode_sir_sua[1:100, 3]) + 
+  sum((solution_1_ode_sir_sua[1:100, 3])^2) +
+  sum(solution_1_ode_sir_sua[2:101, 4]*solution_1_ode_sir_sua[1:100, 3]) - 
+  sum(solution_1_ode_sir_sua[1:100, 4]*solution_1_ode_sir_sua[1:100, 3]) - 
+  0.2*(sum((solution_1_ode_sir_sua[1:100, 3])^2) - 
+         sum(solution_1_ode_sir_sua[1:100, 4]*solution_1_ode_sir_sua[1:100, 3]))
+
+beta_2_sir_sua = (2*e_1*sum((solution_1_ode_sir_sua[1:100, 3])^2) 
+              + f_1*sum(solution_1_ode_sir_sua[1:100, 2]*(solution_1_ode_sir_sua[1:100, 3])^2))/
+  (4*sum((solution_1_ode_sir_sua[1:100, 2])^2*(solution_1_ode_sir_sua[1:100, 3])^2)*
+     sum((solution_1_ode_sir_sua[1:100, 3])^2) - 
+     (sum(solution_1_ode_sir_sua[1:100, 2]*(solution_1_ode_sir_sua[1:100, 3])^2))^2)
+
+gamma_2_sir_sua = (2*f_1*sum((solution_1_ode_sir_sua[1:100, 2])^2*
+                         (solution_1_ode_sir_sua[1:100, 3])^2) 
+               + e_1*sum(solution_1_ode_sir_sua[1:100, 2]*
+                         (solution_1_ode_sir_sua[1:100, 3])^2))/
+  (4*sum((solution_1_ode_sir_sua[1:100, 2])^2*(solution_1_ode_sir_sua[1:100, 3])^2)*
+     sum((solution_1_ode_sir_sua[1:100, 3])^2) - 
+     (sum(solution_1_ode_sir_sua[1:100, 2]*(solution_1_ode_sir_sua[1:100, 3])^2))^2)
+
+library(deSolve)
+sir_ode_per_1sua <- ode(y= c(6, 0.1, 0), 0:101, sir, 
+                     c(2, beta_2_sir_sua, gamma_2_sir_sua, 0.2))
+sir_ode_data_per111sua <- data.frame(solution_ode_sir, solution_1_ode_sir, 
+                                     sir_ode_per_1sua)
+
+library(ggplot2)
+color_suscep <- c("Datos" = 'cornflowerblue', "Solución\n real" = "darkblue", 
+                  "Solución\n suavizada" = "blue1")
+p1p3sua <- ggplot(data = sir_ode_data_per111sua) + 
+  geom_point(aes(x = sir_ode_data_per111sua[, 1], y = sir_ode_data_per111sua[, 6], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población susceptible') + 
+  geom_line(aes(x = sir_ode_data_per111sua[, 1], y = sir_ode_data_per111sua[, 2], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = sir_ode_data_per111sua[, 1], y = sir_ode_data_per111sua[, 10], color = "Solución\n suavizada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_suscep, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+
+color_infect <- c("Datos" = 'orchid1', "Solución\n real" = "orangered2", 
+                  "Solución\n suavizada" = "red4")
+p3p3sua <- ggplot(data = sir_ode_data_per111sua) + 
+  geom_point(aes(x = sir_ode_data_per111sua[, 1], y = sir_ode_data_per111sua[, 7], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población infectada') + 
+  geom_line(aes(x = sir_ode_data_per111sua[, 1], y = sir_ode_data_per111sua[, 3], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = sir_ode_data_per111sua[, 1], y = sir_ode_data_per111sua[, 11], color = "Solución\n suavizada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_infect, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+
+color_recupe <- c("Datos" = 'springgreen1', "Solución\n real" = "seagreen4", 
+                  "Solución\n suavizada" = "darkslategray")
+
+p4p3sua <- ggplot(data = sir_ode_data_per111sua) + 
+  geom_point(aes(x = sir_ode_data_per111sua[, 1], y = sir_ode_data_per111sua[, 8], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población recuperada') + 
+  geom_line(aes(x = sir_ode_data_per111sua[, 1], y = sir_ode_data_per111sua[, 4], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = sir_ode_data_per111sua[, 1], y = sir_ode_data_per111sua[, 12], color = "Solución\n suavizada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_recupe, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+# install.packages("gridExtra")
+library(gridExtra)
+grid.arrange(p1p3sua, p3p3sua, p4p3sua, ncol = 2)
+
+# Suavización de los datos del modelo SEIR 
+library(npregfast)
+sua_sus_seir = frfast(as.numeric(solution_1_ode[ , 2]) ~ 
+                       as.numeric(solution_1_ode[ , 1]), model = "np", 
+                     smooth = "kernel", kbin = 4*length(solution_1_ode[ , 2]), 
+                     p = 3)
+sua_sus_seir = data.frame(sua_sus_seir$p)
+plot(solution_1_ode[,1], solution_1_ode[,2], pch = 20)
+lines(sua_sus_seir$X1[seq(4, (4*102), by = 4)], lwd = 2)
+
+sua_exp_seir = frfast(as.numeric(solution_1_ode[ , 3]) ~ 
+                       as.numeric(solution_1_ode[ , 1]), model = "np", 
+                     smooth = "kernel", kbin = 4*length(solution_1_ode[ , 3]),
+                     p = 3)
+sua_exp_seir = data.frame(sua_exp_seir$p)
+plot(solution_1_ode[,1], solution_1_ode[,3], pch = 20)
+lines(sua_exp_seir$X1[seq(4, (4*102), by = 4)], lwd = 2)
+
+sua_inf_seir = frfast(as.numeric(solution_1_ode[ , 4]) ~ 
+                       as.numeric(solution_1_ode[ , 1]), model = "np", 
+                     smooth = "kernel", kbin = 4*length(solution_1_ode[ , 4]),
+                     p = 2)
+sua_inf_seir = data.frame(sua_inf_seir$p)
+plot(solution_1_ode[,1], solution_1_ode[,4], pch = 20)
+lines(sua_inf_seir$X1[seq(4, (4*102), by = 4)], lwd = 2)
+
+sua_rec_seir = frfast(as.numeric(solution_1_ode[ , 5]) ~ 
+                        as.numeric(solution_1_ode[ , 1]), model = "np", 
+                      smooth = "kernel", kbin = 4*length(solution_1_ode[ , 5]),
+                      p = 2)
+sua_rec_seir = data.frame(sua_rec_seir$p)
+plot(solution_1_ode[,1], solution_1_ode[,5], pch = 20)
+lines(sua_rec_seir$X1[seq(4, (4*102), by = 4)], lwd = 2)
+
+# Estimadores del modelo SEIR usando los datos suavizados  
+
+solution_1_ode_sua = data.frame(1:102, sua_sus_seir$X1[seq(4, (4*102), by = 4)], 
+                                sua_exp_seir$X1[seq(4, (4*102), by = 4)], 
+                                sua_inf_seir$X1[seq(4, (4*102), by = 4)], 
+                                sua_rec_seir$X1[seq(4, (4*102), by = 4)])
+
+g_1 = -sum(solution_1_ode_sua[2:101, 2]*solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[1:100, 4]) + 
+  sum(solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[1:100, 4]) + 
+  2*sum(solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[1:100, 4]) + 
+  sum(solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[2:101, 3]*solution_1_ode_sua[1:100, 4]) -
+  sum(solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4]) -
+  0.2*(sum(solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[1:100, 4]) - 
+         sum(solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4]))
+
+h_1 = -sum(solution_1_ode_sua[2:101, 3]*solution_1_ode_sua[1:100, 3]) +
+  sum(solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 3]) + 
+  sum(solution_1_ode_sua[2:101, 3]*solution_1_ode_sua[1:100, 4]) - 
+  sum(solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4]) - 
+  0.2*(sum(solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 3]) - 
+         sum(solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4]))
+
+l_1 = - sum(solution_1_ode_sua[2:101, 4]*solution_1_ode_sua[1:100, 4]) +
+  sum(solution_1_ode_sua[1:100, 4]*solution_1_ode_sua[1:100, 4]) + 
+  sum(solution_1_ode_sua[2:101, 4]*solution_1_ode_sua[1:100, 5]) - 
+  sum(solution_1_ode_sua[1:100, 4]*solution_1_ode_sua[1:100, 5]) - 
+  0.2*(sum(solution_1_ode_sua[1:100, 4]*solution_1_ode_sua[1:100, 4]) - 
+         sum(solution_1_ode_sua[1:100, 4]*solution_1_ode_sua[1:100, 5]))
+
+beta_2_e_sua = (-sum(solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4])*
+              sum(solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4])*l_1 - 
+              2*sum(solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4])*
+              sum(solution_1_ode_sua[1:100, 4]*solution_1_ode_sua[1:100, 4])*h_1 - 
+              4*sum(solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 3])*
+              sum(solution_1_ode_sua[1:100, 4]*solution_1_ode_sua[1:100, 4])*g_1 + 
+              ((sum(solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4]))^2*g_1))/
+  ((-8*sum((solution_1_ode_sua[1:100, 2])^2*(solution_1_ode_sua[1:100, 4])^2)*
+      sum((solution_1_ode_sua[1:100, 3])^2)*sum((solution_1_ode_sua[1:100, 4])^2)) + 
+     (2*sum(((solution_1_ode_sua[1:100, 2])^2)*(solution_1_ode_sua[1:100, 4])^2)*
+        (sum(solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4]))^2) + 
+     ((2*(sum(solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4]))^2)*
+        sum((solution_1_ode_sua[1:100, 4])^2)))
+
+upsilon_2_e_sua = (-2*(sum((solution_1_ode_sua[1:100, 2])^2*(solution_1_ode_sua[1:100, 4])^2)*
+                     sum(solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4])*l_1 + 
+                     2*sum((solution_1_ode_sua[1:100, 2])^2*(solution_1_ode_sua[1:100, 4])^2)*
+                     sum((solution_1_ode_sua[1:100, 4])^2)*h_1 +
+                     sum(solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4])*
+                     sum((solution_1_ode_sua[1:100, 4])^2)*g_1))/
+  ((-8*sum((solution_1_ode_sua[1:100, 2])^2*(solution_1_ode_sua[1:100, 4])^2)*
+      sum((solution_1_ode_sua[1:100, 3])^2)*sum((solution_1_ode_sua[1:100, 4])^2)) + 
+     (2*sum(((solution_1_ode_sua[1:100, 2])^2)*(solution_1_ode_sua[1:100, 4])^2)*
+        (sum(solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4]))^2) + 
+     ((2*(sum(solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4]))^2)*
+        sum((solution_1_ode_sua[1:100, 4])^2)))
+
+gamma_2_e_sua = -(4*sum((solution_1_ode_sua[1:100, 2])^2*(solution_1_ode_sua[1:100, 4])^2)*
+                sum((solution_1_ode_sua[1:100, 3])^2)*l_1 + 
+                2*sum((solution_1_ode_sua[1:100, 2])^2*(solution_1_ode_sua[1:100, 4])^2)*
+                sum(solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4])*h_1 - 
+                (sum(solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4]))^2*l_1 + 
+                sum(solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4])*
+                sum(solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4])*g_1)/
+  ((-8*sum((solution_1_ode_sua[1:100, 2])^2*(solution_1_ode_sua[1:100, 4])^2)*
+      sum((solution_1_ode_sua[1:100, 3])^2)*sum((solution_1_ode_sua[1:100, 4])^2)) + 
+     (2*sum(((solution_1_ode_sua[1:100, 2])^2)*(solution_1_ode_sua[1:100, 4])^2)*
+        (sum(solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4]))^2) + 
+     ((2*(sum(solution_1_ode_sua[1:100, 2]*solution_1_ode_sua[1:100, 3]*solution_1_ode_sua[1:100, 4]))^2)*
+        sum((solution_1_ode_sua[1:100, 4])^2)))
+
+solution_ode_per_2_sua <- ode(y= c(12, 0, 0.1, 0), 0:101, seir, 
+                          c(2, beta_2_e_sua, upsilon_2_e_sua, gamma_2_e_sua, 
+                            0.2))
+
+ode_data_suaini <- data.frame(solution_ode, solution_1_ode, solution_ode_per_2_sua)
+
+# install.packages("ggplot2")
+# install.packages("tidyverse")
+library(ggplot2)
+library(tidyverse)
+
+color_suscep <- c("Datos" = 'cornflowerblue', "Solución\n real" = "darkblue", 
+                  "Solución\n suavizada" = "blue1")
+p1suaini <- ggplot(data = ode_data_sua) + 
+  geom_point(aes(x = ode_data_sua[, 1], y = ode_data_sua[, 7], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población susceptible') + 
+  geom_line(aes(x = ode_data_sua[, 1], y = ode_data_sua[, 2], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = ode_data_sua[, 1], y = ode_data_sua[, 12], color = "Solución\n suavizada"), 
+            linewidth = 1) + 
+  geom_line(aes(x = ode_data_sua[, 1], y = ode_data_sua[, 12], color = "Solución\n suavizada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_suscep, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+
+color_expues <- c("Datos" = 'darkgoldenrod1', "Solución\n real" = "chocolate1", 
+                  "Solución\n suavizada" = "darkorange4")
+p2sua <- ggplot(data = ode_data_sua) + 
+  geom_point(aes(x = ode_data_sua[, 1], y = ode_data_sua[, 8], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población expuesta') + 
+  geom_line(aes(x = ode_data_sua[, 1], y = ode_data_sua[, 3], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = ode_data_sua[, 1], y = ode_data_sua[, 13], color = "Solución\n suavizada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_expues, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+
+color_infect <- c("Datos" = 'orchid1', "Solución\n real" = "orangered2", 
+                  "Solución\n suavizada" = "red4")
+p3sua <- ggplot(data = ode_data_sua) + 
+  geom_point(aes(x = ode_data_sua[, 1], y = ode_data_sua[, 9], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población infectada') + 
+  geom_line(aes(x = ode_data_sua[, 1], y = ode_data_sua[, 4], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = ode_data_sua[, 1], y = ode_data_sua[, 14], color = "Solución\n suavizada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_infect, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+
+color_recupe <- c("Datos" = 'springgreen1', "Solución\n real" = "seagreen4", 
+                  "Solución\n suavizada" = "darkslategray")
+
+p4sua <- ggplot(data = ode_data_sua) + 
+  geom_point(aes(x = ode_data_sua[, 1], y = ode_data_sua[, 10], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población recuperada') + 
+  geom_line(aes(x = ode_data_sua[, 1], y = ode_data_sua[, 5], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = ode_data_sua[, 1], y = ode_data_sua[, 15], color = "Solución\n suavizada"), 
+            linewidth = 1) + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_recupe, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid"), 
+                                                 shape = c(16, NA, NA))))
+# install.packages("gridExtra")
+library(gridExtra)
+grid.arrange(p1sua, p2sua, p3sua, p4sua)
+
+# Primeros datos como valores iniciales para el modelo SIR 
+library(deSolve)
+sir_ode_per_1ini <- ode(y= c(solution_1_ode_sir[2, 2], 
+                             solution_1_ode_sir[2, 3], 
+                             solution_1_ode_sir[2, 4]), 0:101, sir, 
+                               c(2, beta_2_sir, gamma_2_sir, 0.2))
+sir_ode_per_1suaini <- ode(y= c(solution_1_ode_sir[2, 2], 
+                                solution_1_ode_sir[2, 3], 
+                                solution_1_ode_sir[2, 4]), 0:101, sir,
+                           c(2, beta_2_sir_sua, gamma_2_sir_sua, 0.2))
+sir_ode_data_per111suaini <- data.frame(solution_ode_sir, solution_1_ode_sir, 
+                                        sir_ode_per_1sua, sir_ode_per_1ini, 
+                                        sir_ode_per_1suaini)
+
+library(ggplot2)
+color_suscep <- c("Datos" = 'cornflowerblue', "Solución\n real" = "darkblue", 
+                  "Solución\n suavizada" = "blue1", "Solución\n inicial" = "cyan3", 
+                  "Solución\n inicial2" = "cyan4")
+p1p3suaini <- ggplot(data = sir_ode_data_per111suaini) + 
+  geom_point(aes(x = sir_ode_data_per111suaini[, 1], y = sir_ode_data_per111suaini[, 6], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población susceptible') + 
+  geom_line(aes(x = sir_ode_data_per111suaini[, 1], y = sir_ode_data_per111suaini[, 2], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = sir_ode_data_per111suaini[, 1], y = sir_ode_data_per111suaini[, 10], color = "Solución\n suavizada"), 
+            linewidth = 1) + 
+  geom_line(aes(x = sir_ode_data_per111suaini[, 1], y = sir_ode_data_per111suaini[, 14], color = "Solución\n inicial"), 
+            linewidth = 1) +
+  geom_line(aes(x = sir_ode_data_per111suaini[, 1], y = sir_ode_data_per111suaini[, 18], color = "Solución\n inicial2"), 
+            linewidth = 1) +
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_suscep, name = "", 
+                     guide = guide_legend(ncol = 4, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid", "solid", "solid"), 
+                                                 shape = c(16, NA, NA, NA, NA))))
+
+color_infect <- c("Datos" = 'orchid1', "Solución\n real" = "orangered2", 
+                  "Solución\n suavizada" = "red4", "Solución\n inicial" = "cyan3", 
+                  "Solución\n inicial2" = "cyan4")
+p3p3suaini <- ggplot(data = sir_ode_data_per111suaini) + 
+  geom_point(aes(x = sir_ode_data_per111suaini[, 1], y = sir_ode_data_per111suaini[, 7], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población infectada') + 
+  geom_line(aes(x = sir_ode_data_per111suaini[, 1], y = sir_ode_data_per111suaini[, 3], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = sir_ode_data_per111suaini[, 1], y = sir_ode_data_per111suaini[, 11], color = "Solución\n suavizada"), 
+            linewidth = 1) + 
+  geom_line(aes(x = sir_ode_data_per111suaini[, 1], y = sir_ode_data_per111suaini[, 15], color = "Solución\n inicial"), 
+            linewidth = 1) +
+  geom_line(aes(x = sir_ode_data_per111suaini[, 1], y = sir_ode_data_per111suaini[, 19], color = "Solución\n inicial2"), 
+            linewidth = 1) +
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_infect, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid", "solid", "solid"), 
+                                                 shape = c(16, NA, NA, NA, NA))))
+
+color_recupe <- c("Datos" = 'springgreen1', "Solución\n real" = "seagreen4", 
+                  "Solución\n suavizada" = "darkslategray", "Solución\n inicial" = "cyan3", 
+                  "Solución\n inicial2" = "cyan4")
+
+p4p3suaini <- ggplot(data = sir_ode_data_per111suaini) + 
+  geom_point(aes(x = sir_ode_data_per111suaini[, 1], y = sir_ode_data_per111suaini[, 8], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población recuperada') + 
+  geom_line(aes(x = sir_ode_data_per111suaini[, 1], y = sir_ode_data_per111suaini[, 4], color = "Solución\n real"), 
+            linewidth = 1) + 
+  geom_line(aes(x = sir_ode_data_per111suaini[, 1], y = sir_ode_data_per111suaini[, 12], color = "Solución\n suavizada"), 
+            linewidth = 1) + 
+  geom_line(aes(x = sir_ode_data_per111suaini[, 1], y = sir_ode_data_per111suaini[, 16], color = "Solución\n inicial"), 
+            linewidth = 1) +
+  geom_line(aes(x = sir_ode_data_per111suaini[, 1], y = sir_ode_data_per111suaini[, 20], color = "Solución\n inicial2"), 
+            linewidth = 1) +
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_infect, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c("blank", "solid", "solid", "solid", "solid"), 
+                                                 shape = c(16, NA, NA, NA, NA))))
+# install.packages("gridExtra")
+library(gridExtra)
+grid.arrange(p1p3suaini, p3p3suaini, p4p3suaini, ncol = 2)
+
+# Primeros datos como valores iniciales para el modelo SEIR 
+library(deSolve)
+seir_ode_ini <- ode(y= c(solution_1_ode[2, 2], solution_1_ode[2, 3], 
+                         solution_1_ode[2, 4], solution_1_ode[2, 5]), 
+                        0:101, seir, c(2, beta_2_e, upsilon_2_e, gamma_2_e, 
+                                       0.2))
+seir_ode_suaini <- ode(y= c(solution_1_ode[2, 2], solution_1_ode[2, 3], 
+                            solution_1_ode[2, 4], solution_1_ode[2, 5]), 
+                       0:101, seir, c(2, beta_2_e_sua, upsilon_2_e_sua, 
+                                      gamma_2_e_sua, 0.2))
+seir_ode_data_11suainicam <- data.frame(solution_ode[1:25, ], 
+                                     solution_1_ode[2:26, ],
+                                     solution_ode_per_2_sua[1:25, ], 
+                                     seir_ode_ini[1:25, ], 
+                                     seir_ode_suaini[1:25, ])
+
+color_suscep <- c("Datos" = 'cornflowerblue', "Solución\n real" = "cadetblue1", 
+                  "Solución\n suavizada" = "blue1", 
+                  "Solución\n iniciales 1" = "darkblue", 
+                  "Solución\n iniciales 2" = "mediumpurple4")
+library(ggplot2)
+p1sussuainicam <- ggplot(data = seir_ode_data_11suainicam) + 
+  geom_point(aes(x = seir_ode_data_11suainicam[, 1], y = seir_ode_data_11suainicam[, 7], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población susceptible') + 
+  geom_line(aes(x = seir_ode_data_11suainicam[, 1], y = seir_ode_data_11suainicam[, 2], color = "Solución\n real"), 
+            linewidth = 1.5, linetype = 'dashed') + 
+  # geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 12], color = "Solución\n suavizada"), 
+  #           linewidth = 1) + 
+  geom_line(aes(x = seir_ode_data_11suainicam[, 1], y = seir_ode_data_11suainicam[, 17], color = "Solución\n iniciales 1"), 
+            linewidth = 1) + 
+  geom_line(aes(x = seir_ode_data_11suainicam[, 1], y = seir_ode_data_11suainicam[, 22], color = "Solución\n iniciales 2"), 
+            linewidth = 1, linetype = "4C88C488") + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_suscep, name = "", 
+                     guide = guide_legend(ncol = 2, override.aes = 
+                                            list(linetype = c("blank", "dashed",
+                                                              "4C88C488", "solid"), 
+                                                 shape = c(16, NA, NA, NA))))
+
+color_expues <- c("Datos" = 'darkgoldenrod1', "Solución\n real" = "chocolate1", 
+                  "Solución\n suavizada" = "tan3", 
+                  "Solución\n iniciales 1" = "tomato3", 
+                  "Solución\n iniciales 2" = "tomato4")
+p1expsuainicam <- ggplot(data = seir_ode_data_11suainicam) + 
+  geom_point(aes(x = seir_ode_data_11suainicam[, 1], y = seir_ode_data_11suainicam[, 8], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población expuesta') + 
+  geom_line(aes(x = seir_ode_data_11suainicam[, 1], y = seir_ode_data_11suainicam[, 3], color = "Solución\n real"), 
+            linewidth = 1.5, linetype = 'dashed') + 
+  # geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 13], color = "Solución\n suavizada"), 
+  #           linewidth = 1) + 
+  geom_line(aes(x = seir_ode_data_11suainicam[, 1], y = seir_ode_data_11suainicam[, 18], color = "Solución\n iniciales 1"), 
+            linewidth = 1) + 
+  geom_line(aes(x = seir_ode_data_11suainicam[, 1], y = seir_ode_data_11suainicam[, 23], color = "Solución\n iniciales 2"), 
+            linewidth = 1, linetype = "4C88C488") + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_expues, name = "", 
+                     guide = guide_legend(ncol = 2, override.aes = 
+                                            list(linetype = c("blank", "dashed",
+                                                              "4C88C488", "solid"), 
+                                                 shape = c(16, NA, NA, NA))))
+
+color_infect <- c("Datos" = 'orchid1', "Solución\n real" = "orangered2", 
+                  "Solución\n suavizada" = "red4", 
+                  "Solución\n iniciales 1" = "maroon", 
+                  "Solución\n iniciales 2" = "maroon4")
+p1infsuainicam <- ggplot(data = seir_ode_data_11suainicam[, ]) + 
+  geom_point(aes(x = seir_ode_data_11suainicam[, 1], y = seir_ode_data_11suainicam[, 9], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población infectada') + 
+  geom_line(aes(x = seir_ode_data_11suainicam[, 1], y = seir_ode_data_11suainicam[, 4], color = "Solución\n real"), 
+            linewidth = 1.5, linetype = 'dashed') + 
+  # geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 14], color = "Solución\n suavizada"), 
+  #           linewidth = 1) + 
+  geom_line(aes(x = seir_ode_data_11suainicam[, 1], y = seir_ode_data_11suainicam[, 19], color = "Solución\n iniciales 1"), 
+            linewidth = 1) + 
+  geom_line(aes(x = seir_ode_data_11suainicam[, 1], y = seir_ode_data_11suainicam[, 24], color = "Solución\n iniciales 2"), 
+            linewidth = 1, linetype = "4C88C488") + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_infect, name = "", 
+                     guide = guide_legend(ncol = 2, override.aes = 
+                                            list(linetype = c("blank", 'dashed',
+                                                              "4C88C488", "solid"), 
+                                                 shape = c(16, NA, NA, NA))))
+
+color_recupe <- c("Datos" = "olivedrab2", "Solución\n real" = "seagreen4", 
+                  "Solución\n suavizada" = "darkslategray", 
+                  "Solución\n iniciales 1" = "aquamarine4", 
+                  "Solución\n iniciales 2" = 'springgreen1')
+p1recsuainicam <- ggplot(data = seir_ode_data_11suainicam) + 
+  geom_point(aes(x = seir_ode_data_11suainicam[, 1], y = seir_ode_data_11suainicam[, 10], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población recuperada') + 
+  geom_line(aes(x = seir_ode_data_11suainicam[, 1], y = seir_ode_data_11suainicam[, 5], color = "Solución\n real"), 
+            linewidth = 1.5, linetype = 'dashed') + 
+  # geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 15], color = "Solución\n suavizada"), 
+  #           linewidth = 1) + 
+  geom_line(aes(x = seir_ode_data_11suainicam[, 1], y = seir_ode_data_11suainicam[, 20], color = "Solución\n iniciales 1"), 
+            linewidth = 1) + 
+  geom_line(aes(x = seir_ode_data_11suainicam[, 1], y = seir_ode_data_11suainicam[, 25], color = "Solución\n iniciales 2"), 
+            linewidth = 1, linetype = "4C88C488") + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_recupe, name = "", 
+                     guide = guide_legend(ncol = 2, override.aes = 
+                                            list(linetype = c("blank", 'dashed',
+                                                              "4C88C488", "solid"), 
+                                                 shape = c(16, NA, NA, NA))))
+# install.packages("gridExtra")
+library(gridExtra)
+grid.arrange(p1sussuainicam, p1expsuainicam, p1infsuainicam, p1recsuainicam)
+
+# Pequeños cambios con los valores iniciales para el modelo SEIR 
+library(deSolve)
+seir_ode_ini <- ode(y= c(12 + 1, 0 + 0.1, 
+                         0.1 + 0.05, 0 + 0.1), 
+                    0:101, seir, c(2, beta_2_e, upsilon_2_e, gamma_2_e, 
+                                   0.2))
+seir_ode_suaini <- ode(y= c(12 + 0.5, 0 + 0.01, 
+                            0.1 + 0.05, 0 + 0.01), 
+                       0:101, seir, c(2, beta_2_e_sua, upsilon_2_e_sua, 
+                                      gamma_2_e_sua, 0.2))
+seir_ode_data_11suaini <- data.frame(solution_ode[1:18, ], 
+                                     solution_1_ode[2:19, ],
+                                     solution_ode_per_2_sua[1:18, ], 
+                                     seir_ode_ini[1:18, ], 
+                                     seir_ode_suaini[1:18, ])
+
+color_suscep <- c("Datos" = 'cornflowerblue', "Solución\n real" = "cadetblue1", 
+                  "Solución\n suavizada" = "blue1", 
+                  "Solución\n iniciales 1" = "darkblue", 
+                  "Solución\n iniciales 2" = "mediumpurple4")
+library(ggplot2)
+p1sussuaini <- ggplot(data = seir_ode_data_11suaini) + 
+  geom_point(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 7], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población susceptible') + 
+  geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 2], color = "Solución\n real"), 
+            linewidth = 1.5, linetype = 'dashed') + 
+  # geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 12], color = "Solución\n suavizada"), 
+  #           linewidth = 1) + 
+  geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 17], color = "Solución\n iniciales 1"), 
+            linewidth = 1) + 
+  geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 22], color = "Solución\n iniciales 2"), 
+            linewidth = 1, linetype = "4C88C488") + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_suscep, name = "", 
+                     guide = guide_legend(ncol = 2, override.aes = 
+                                            list(linetype = c("blank", "dashed",
+                                                              "4C88C488", "solid"), 
+                                                 shape = c(16, NA, NA, NA))))
+
+color_expues <- c("Datos" = 'darkgoldenrod1', "Solución\n real" = "chocolate1", 
+                  "Solución\n suavizada" = "tan3", 
+                  "Solución\n iniciales 1" = "tomato3", 
+                  "Solución\n iniciales 2" = "tomato4")
+p1expsuaini <- ggplot(data = seir_ode_data_11suaini) + 
+  geom_point(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 8], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población expuesta') + 
+  geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 3], color = "Solución\n real"), 
+            linewidth = 1.5, linetype = 'dashed') + 
+  # geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 13], color = "Solución\n suavizada"), 
+  #           linewidth = 1) + 
+  geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 18], color = "Solución\n iniciales 1"), 
+            linewidth = 1) + 
+  geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 23], color = "Solución\n iniciales 2"), 
+            linewidth = 1, linetype = "4C88C488") + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_expues, name = "", 
+                     guide = guide_legend(ncol = 2, override.aes = 
+                                            list(linetype = c("blank", "dashed",
+                                                              "4C88C488", "solid"), 
+                                                 shape = c(16, NA, NA, NA))))
+
+color_infect <- c("Datos" = 'orchid1', "Solución\n real" = "orangered2", 
+                  "Solución\n suavizada" = "red4", 
+                  "Solución\n iniciales 1" = "maroon", 
+                  "Solución\n iniciales 2" = "maroon4")
+p1infsuaini <- ggplot(data = seir_ode_data_11suaini[, ]) + 
+  geom_point(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 9], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población infectada') + 
+  geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 4], color = "Solución\n real"), 
+            linewidth = 1.5, linetype = 'dashed') + 
+  # geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 14], color = "Solución\n suavizada"), 
+  #           linewidth = 1) + 
+  geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 19], color = "Solución\n iniciales 1"), 
+            linewidth = 1) + 
+  geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 24], color = "Solución\n iniciales 2"), 
+            linewidth = 1, linetype = "4C88C488") + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_infect, name = "", 
+                     guide = guide_legend(ncol = 2, override.aes = 
+                                            list(linetype = c("blank", 'dashed',
+                                                              "4C88C488", "solid"), 
+                                                 shape = c(16, NA, NA, NA))))
+
+color_recupe <- c("Datos" = "olivedrab2", "Solución\n real" = "seagreen4", 
+                  "Solución\n suavizada" = "darkslategray", 
+                  "Solución\n iniciales 1" = "aquamarine4", 
+                  "Solución\n iniciales 2" = 'springgreen1')
+p1recsuaini <- ggplot(data = seir_ode_data_11suaini) + 
+  geom_point(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 10], color = "Datos"), 
+             size = 2) + 
+  labs(x = 'Tiempo (días)', y = 'Número de población recuperada') + 
+  geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 5], color = "Solución\n real"), 
+            linewidth = 1.5, linetype = 'dashed') + 
+  # geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 15], color = "Solución\n suavizada"), 
+  #           linewidth = 1) + 
+  geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 20], color = "Solución\n iniciales 1"), 
+            linewidth = 1) + 
+  geom_line(aes(x = seir_ode_data_11suaini[, 1], y = seir_ode_data_11suaini[, 25], color = "Solución\n iniciales 2"), 
+            linewidth = 1, linetype = "4C88C488") + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_recupe, name = "", 
+                     guide = guide_legend(ncol = 2, override.aes = 
+                                            list(linetype = c("blank", 'dashed',
+                                                              "4C88C488", "solid"), 
+                                                 shape = c(16, NA, NA, NA))))
+# install.packages("gridExtra")
+library(gridExtra)
+grid.arrange(p1sussuaini, p1expsuaini, p1infsuaini, p1recsuaini)
