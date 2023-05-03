@@ -1,0 +1,85 @@
+# Estimación de las poblaciones 
+
+library(readxl)
+anexo_proyecciones_poblacion_bogota_desagreacion_loc_2018_2035_UPZ_2018_2024 <- 
+  read_excel("~/Tesis de doctorado/R/anexo-proyecciones-poblacion-bogota-desagreacion-loc-2018-2035-UPZ-2018-2024 (2).xlsx")
+proyeccion_bog <- data.frame(cbind(anexo_proyecciones_poblacion_bogota_desagreacion_loc_2018_2035_UPZ_2018_2024$...3, 
+                                   anexo_proyecciones_poblacion_bogota_desagreacion_loc_2018_2035_UPZ_2018_2024$...4,
+                                   anexo_proyecciones_poblacion_bogota_desagreacion_loc_2018_2035_UPZ_2018_2024$...310))
+proyeccion_bog <- na.omit(proyeccion_bog) # Población total de 2018 a 2035
+colnames(proyeccion_bog) <- c("Centro", "Año", "Total")
+head(proyeccion_bog)
+
+proyeccion_bog1 = NULL
+for (i in 1:2035-2017) {
+  proyeccion_bog1[i] <- sum(as.numeric(proyeccion_bog[proyeccion_bog[, 2] == i + 2017 & 
+                                                      proyeccion_bog[, 1] != "Total", 3]))
+}
+
+library(readxl)
+DCD_area_proypoblacion_dep_2005_2019 <- 
+  read_excel("~/Tesis de doctorado/R/DCD-area-proypoblacion-dep-2005-2019.xlsx")
+# Datos de 2005 a 2017
+
+base_proy = DCD_area_proypoblacion_dep_2005_2019[6:length(DCD_area_proypoblacion_dep_2005_2019$...5), ]
+head(base_proy)
+colnames(base_proy) = DCD_area_proypoblacion_dep_2005_2019[5, ]
+base_proy$DPNOM = as.character(base_proy$DPNOM)
+
+base_proy_bog = base_proy[which(base_proy$DPNOM == "Bogotá, D.C."), ] 
+
+base_proy_bog1 <- NULL 
+for (i in 1:(2018-2005)) {
+  base_proy_bog1[i] <- sum(as.numeric(base_proy_bog[(3*i), 5]))
+}
+
+proyeccion_bogota <- data.frame(2005:2035, c(base_proy_bog1, proyeccion_bog1))
+
+plot(proyeccion_bogota[, 1], proyeccion_bogota[, 2], type = "b", 
+     col = 3, lwd = 2)
+
+library(ggplot2)
+grafica_poblacion <- ggplot(data = proyeccion_bogota) + 
+  geom_point(aes(x = proyeccion_bogota[, 1], y = proyeccion_bogota[, 2]), 
+             size = 2, color = "darkslategray4") + 
+  geom_line(aes(x = proyeccion_bogota[, 1], y = proyeccion_bogota[, 2]), 
+            linewidth = 0.8, color = "darkturquoise") +
+  labs(x = 'Año', y = 'Total de la población')  + 
+  scale_x_continuous(breaks = seq(2005, 2035, by = 1)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+library(npregfast)
+dias_suavizar = data.frame(proyeccion_bogota[5:19, 1], 
+                           proyeccion_bogota[5:19, 2])
+pob_semana_epi <- frfast(dias_suavizar[, 2]~dias_suavizar[,1], 
+                     model = "np", smooth = "kernel", 
+                       kbin = (656 + 22 + 52), p =3)
+suavizado_semanas = data.frame(pob_semana_epi$p)
+plot(suavizado_semanas[1:656,1])
+
+poblacion_NA = c(proyeccion_bogota[5, 2], 
+                 rep(NA, 50), proyeccion_bogota[6, 2], 
+                 rep(NA, 51), proyeccion_bogota[7, 2], 
+                 rep(NA, 51), proyeccion_bogota[8, 2], 
+                 rep(NA, 51), proyeccion_bogota[9, 2], 
+                 rep(NA, (51+1)), proyeccion_bogota[10, 2], 
+                 rep(NA, 51), proyeccion_bogota[11, 2], 
+                 rep(NA, 51), proyeccion_bogota[12, 2], 
+                 rep(NA, 51), proyeccion_bogota[13, 2], 
+                 rep(NA, 51), proyeccion_bogota[14, 2], 
+                 rep(NA, 51), proyeccion_bogota[15, 2], 
+                 rep(NA, (51+1)), proyeccion_bogota[16, 2], 
+                 rep(NA, 51), proyeccion_bogota[17, 2], 
+                 rep(NA, 24))
+sua_poblacion <- data.frame((as.Date(dias_antes) + 3)[1:650], 
+                            semanas_epidemicas[1:650], 
+                            suavizado_semanas[1:650,1], 
+                            poblacion_NA)
+library(ggplot2)
+grafica_poblacion_1 <- ggplot(data = sua_poblacion) + 
+  geom_point(aes(x = sua_poblacion[, 1], y = sua_poblacion[, 3]), 
+            size = 0.5, color = "darkturquoise") + 
+  geom_point(aes(x = sua_poblacion[, 1], y = sua_poblacion[, 4]), 
+            size = 2, color = "darkslategray4")  +
+  labs(x = 'Año', y = 'Total de la población')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
