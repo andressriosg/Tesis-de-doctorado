@@ -1,0 +1,270 @@
+### Por actualización de datos 
+
+actu_lambda = delta_pob
+plot(actu_lambda, col = "blue", lwd = 2, type = "l")
+actu_mu = NULL 
+for (i in 2:650) {
+  actu_mu[i] = (sua_poblacion[i,3] - sua_poblacion[(i-1),3] + actu_lambda[i])/sua_poblacion[(i-1),3]
+}
+plot(actu_mu, col = "blue", lwd = 2, type = "l")
+
+# delta_pob = NULL
+# for (i in 2:650) {delta_pob[i] = sua_poblacion[i,3] - sua_poblacion[(i-1),3]}
+
+# SIN SUAVIZAR DATOS 
+library(imputeTS)
+datos_infectados_finalfin = na_interpolation(datos_mod_SIRSEIR)
+
+actu_betassin = NULL
+for (i in 1:649) {
+  actu_betassin[i] = (-sua_poblacion[(i+1),3] + sua_poblacion[i,3] + datos_infectados_finalfin[(i+1)] - 
+                     datos_infectados_finalfin[i] + actu_lambda[(i+1)] - actu_mu[(i+1)]*(sua_poblacion[i,3] -
+                                                                                             datos_infectados_finalfin[i]))/datos_infectados_finalfin[i] + 1/2.5
+}
+plot(actu_betassin*datos_infectados_finalfin, type = "l", lwd = 2)
+
+parametros_actisin = data.frame((as.Date(dias_antes) + 3)[1:649], actu_lambda[1:649], 
+                             actu_mu[1:649], actu_betassin[1:649])
+library(ggplot2)
+acti_lambda <- ggplot(data = parametros_actisin) + 
+  geom_line(aes(x = parametros_actisin[, 1], y = parametros_actisin[, 2]), color = "#CD96CD",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = expression(Lambda[i]))  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+acti_lambda
+acti_mu <- ggplot(data = parametros_actisin) + 
+  geom_line(aes(x = parametros_actisin[, 1], y = parametros_actisin[, 3]), color = "#6959CD",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = expression(mu[i]))  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+acti_mu
+acti_betassin <- ggplot(data = parametros_actisin) + 
+  geom_line(aes(x = parametros_actisin[, 1], y = parametros_actisin[, 4]), color = "#CD6889",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = expression(paste(beta[i], "S")))  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+acti_betassin
+library(gridExtra)
+grid.arrange(acti_lambda, acti_mu)
+
+acti_susceptiblessin = NULL 
+acti_susceptiblessin[1] = x0[[1]][1]
+for (i in 2:650) {
+  acti_susceptiblessin[i] = acti_susceptiblessin[(i-1)] + actu_lambda[i] - 
+    actu_betassin[i]*datos_infectados_finalfin[(i-1)] - actu_mu[i]*acti_susceptiblessin[(i-1)]
+}
+plot(acti_susceptiblessin, col = "blue", lwd = 2, type = "l")
+
+acti_recuperadossin = NULL 
+acti_recuperadossin[1] = x0[[1]][3]
+for (j in 2:650) {
+  acti_recuperadossin[j] = acti_recuperadossin[(j-1)] + (1/2.5)*datos_infectados_finalfin[(j-1)] - 
+    actu_mu[j]*acti_recuperadossin[(j-1)]
+}
+plot(acti_recuperadossin, type = "l", lwd = 2)
+plot(acti_susceptiblessin + acti_recuperadossin, type = "l", lwd = 2)
+
+datos_sus_rep_actisin = data.frame((as.Date(dias_antes) + 3)[1:650], acti_susceptiblessin, acti_recuperadossin)
+
+library(ggplot2)
+grafica_pob1_actisussin <- ggplot(data = datos_sus_rep_actisin) + 
+  geom_line(aes(x = datos_sus_rep_actisin[, 1], y = datos_sus_rep_actisin[, 2]), color = "cornflowerblue",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de susceptibles')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+grafica_pob1_actisussin
+
+grafica_pob1_actirecsin <- ggplot(data = datos_sus_rep_actisin) + 
+  geom_line(aes(x = datos_sus_rep_actisin[, 1], y = datos_sus_rep_actisin[, 3]), color = "seagreen4",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de recuperados')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+grafica_pob1_actirecsin
+
+beta_actisin = actu_betassin/acti_susceptiblessin
+datos_betasin = data.frame((as.Date(dias_antes) + 3)[1:650], beta_actisin)
+
+grafica_beta_actisin <- ggplot(data = datos_betasin) + 
+  geom_line(aes(x = datos_betasin[, 1], y = datos_betasin[, 2]), color = "deeppink2",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = expression(beta[i]))  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+grafica_beta_actisin
+
+R0_1actusin = actu_lambda*beta_actisin/(actu_mu*((1/2.5) + actu_mu))
+datos_r0actsin = data.frame((as.Date(dias_antes) + 3)[1:650], R0_1actusin[1:650])
+
+grafica_r0_actisin <- ggplot(data = datos_r0actsin) + 
+  geom_line(aes(x = datos_r0actsin[, 1], y = datos_r0actsin[, 2]), color = "purple3",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  geom_hline(yintercept = 1, 
+             color = "red4", linewidth = 0.5) + 
+  geom_hline(yintercept = 1, col = "red4", linewidth = 0.8) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = expression(R[0,i]))  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+grafica_r0_actisin
+
+# CON SUAVIZAR DATOS 
+
+actu_betas = NULL
+for (i in 1:649) {
+  actu_betas[i] = (-sua_poblacion[(i+1),3] + sua_poblacion[i,3] + sua_datos_mod_SIRSEIR_df[(i+1),1] - 
+                     sua_datos_mod_SIRSEIR_df[i,1] + actu_lambda[(i+1)] - actu_mu[(i+1)]*(sua_poblacion[i,3] -
+                                                                                            sua_datos_mod_SIRSEIR_df[i,1]))/sua_datos_mod_SIRSEIR_df[i,1] + 1/2.5
+}
+plot(actu_betas*sua_datos_mod_SIRSEIR_df[,1], type = "l", lwd = 2)
+
+parametros_acti = data.frame((as.Date(dias_antes) + 3)[1:649], actu_lambda[1:649], 
+                             actu_mu[1:649], actu_betas[1:649])
+library(ggplot2)
+acti_betas <- ggplot(data = parametros_acti) + 
+  geom_line(aes(x = parametros_acti[, 1], y = parametros_acti[, 4]), color = "#CD6889",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = expression(paste(beta[i], "S")))  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+acti_betas
+library(gridExtra)
+
+acti_susceptibles = NULL 
+acti_susceptibles[1] = x0[[1]][1]
+for (i in 2:650) {
+  acti_susceptibles[i] = acti_susceptibles[(i-1)] + actu_lambda[i] - 
+    actu_betas[i]*sua_datos_mod_SIRSEIR_df[(i-1),1] - actu_mu[i]*acti_susceptibles[(i-1)]
+}
+plot(acti_susceptibles, col = "blue", lwd = 2, type = "l")
+
+acti_recuperados = NULL 
+acti_recuperados[1] = x0[[1]][3]
+for (j in 2:650) {
+  acti_recuperados[j] = acti_recuperados[(j-1)] + (1/2.5)*sua_datos_mod_SIRSEIR_df[(j-1),1] - 
+    actu_mu[j]*acti_recuperados[(j-1)]
+}
+plot(acti_recuperados, type = "l", lwd = 2)
+plot(acti_susceptibles + acti_recuperados, type = "l", lwd = 2)
+
+datos_sus_rep_acti = data.frame((as.Date(dias_antes) + 3)[1:650], acti_susceptibles, acti_recuperados)
+
+library(ggplot2)
+grafica_pob1_actisus <- ggplot(data = datos_sus_rep_acti) + 
+  geom_line(aes(x = datos_sus_rep_acti[, 1], y = datos_sus_rep_acti[, 2]), color = "cornflowerblue",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de susceptibles')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+grafica_pob1_actisus
+
+grafica_pob1_actirec <- ggplot(data = datos_sus_rep_acti) + 
+  geom_line(aes(x = datos_sus_rep_acti[, 1], y = datos_sus_rep_acti[, 3]), color = "seagreen4",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de recuperados')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+grafica_pob1_actirec
+
+datos_acti_pobla_ = data.frame((as.Date(dias_antes) + 3)[1:650], 
+                               (acti_susceptibles+acti_recuperados+sua_datos_mod_SIRSEIR_df[,1])[1:650], 
+                               sua_poblacion[,3], 
+                               (vector_sus+vector_rec+sua_datos_mod_SIRSEIR_df[,1])[1:650])
+
+colores_poblacion = c("Población\n por actualización" = "#191970", 
+                      "Total de la\n población" = "darkturquoise", 
+                      "Población\n por mínimos" = "#36648B")
+library(ggplot2)
+datos_acti_pobla <- ggplot(data = datos_acti_pobla_) + 
+  geom_line(aes(x = datos_acti_pobla_[, 1], y = datos_acti_pobla_[, 2], color = "Población\n por actualización"),
+            linewidth = 1) +
+  geom_line(aes(x = datos_acti_pobla_[, 1], y = datos_acti_pobla_[, 3], color = "Total de la\n población"),
+            linewidth = 1, linetype = "dashed") + 
+  geom_line(aes(x = datos_acti_pobla_[, 1], y = datos_acti_pobla_[, 4], color = "Población\n por mínimos"), 
+            linewidth = 1) + 
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Total de la población') + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  scale_color_manual(values = colores_poblacion, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('solid', "solid",
+                                                              "dashed"), 
+                                                 shape = c(NA, NA, NA)))) + 
+  theme(legend.position = "bottom")
+datos_acti_pobla
+tail(datos_acti_pobla_)
+beta_acti = actu_betas/acti_susceptibles
+datos_beta = data.frame((as.Date(dias_antes) + 3)[1:650], beta_acti)
+
+grafica_beta_acti <- ggplot(data = datos_beta) + 
+  geom_line(aes(x = datos_beta[, 1], y = datos_beta[, 2]), color = "deeppink2",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = expression(beta[i]))  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+grafica_beta_acti
+
+R0_1actu = actu_lambda*beta_acti/(actu_mu*((1/2.5) + actu_mu))
+datos_r0act = data.frame((as.Date(dias_antes) + 3)[1:650], R0_1actu[1:650])
+
+grafica_r0_acti <- ggplot(data = datos_r0act) + 
+  geom_line(aes(x = datos_r0act[, 1], y = datos_r0act[, 2]), color = "purple3",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  geom_hline(yintercept = 1, 
+             color = "red4", linewidth = 0.5) + 
+  geom_hline(yintercept = 1, col = "red4", linewidth = 0.8) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = expression(R[0,i]))  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+grafica_r0_acti
+
+## Comparación de modelos 
+
+infec_sinsuavi_actu = NULL
+infec_sinsuavi_actu[1] = datos_infectados_finalfin[1]
+infec_sinsuavi_actu[2:650] = datos_infectados_finalfin[1:649] - (actu_mu[2:650] + (1/2.5))*datos_infectados_finalfin[1:649] + 
+  actu_betassin[1:649]*datos_infectados_finalfin[1:649] 
+
+plot(datos_infectados_finalfin, pch = 20, 
+     ylim = c(min(infec_sinsuavi_actu), max(datos_infectados_finalfin)), 
+     col = "blue")
+lines(infec_sinsuavi_actu, lwd = 2)
+cmesinsua = sum((datos_infectados_finalfin[1:649] - infec_sinsuavi_actu[1:649])^2)/649
+cmesinsua
+
+infec_consuavi_actu = NULL
+infec_consuavi_actu[1] = sua_datos_mod_SIRSEIR_df[1,1]
+infec_consuavi_actu[2:650] = sua_datos_mod_SIRSEIR_df[1:649,1] + 
+  actu_betas[1:649]*sua_datos_mod_SIRSEIR_df[1:649,1] - 
+  (actu_mu[2:650] + (1/2.5))*sua_datos_mod_SIRSEIR_df[1:649,1]
+
+plot(datos_infectados_finalfin, pch = 20, 
+     ylim = c(min(infec_sinsuavi_actu), max(datos_infectados_finalfin)), 
+     col = "blue")
+lines(infec_consuavi_actu, lwd = 2)
+
+cmeconsua = sum((datos_infectados_finalfin[1:649] - infec_consuavi_actu[1:649])^2)/649
+cmeconsua
+
+cmecontotal = sum((sua_poblacion[1:649,3] - (acti_susceptibles[1:649] + 
+                                               acti_recuperados[1:649] + 
+                                               sua_datos_mod_SIRSEIR_df[1:649,1]))^2)/649
+cmesintotal = sum((sua_poblacion[1:649,3] - (acti_susceptiblessin[1:649] + 
+                                               acti_recuperadossin[1:649] + 
+                                               datos_infectados_finalfin[1:649]))^2)/649
