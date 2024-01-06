@@ -1,0 +1,1668 @@
+bd_estimacion = data.frame(sua_poblacion[,3], 
+                           sua_datos_mod_SIRSEIR_df[1:650,1], 
+                           (as.Date(dias_antes) + 3)[1:650])
+
+### Valores encontrados computacionalmente para el modelo SIR. 
+
+intervalos <- list(2:22, 22:58, 58:73, 73:79, 79:97, 97:103, 103:125, 
+                   125:136, 136:143, 143:159, 159:174, 174:192, 192:201, 
+                   201:223, 223:239, 239:245, 245:262, 262:279, 279:285, 
+                   285:298, 298:316, 316:333, 333:352, 352:381, 
+                   381:400, 400:419, 419:438, 438:458, 458:470, 470:492, 
+                   492:503, 503:522, 522:543, 543:552, 552:573, 
+                   573:598, 598:605, 605:632, 632:650)
+# Encontrar porcentaje de IRA en Bogotá 
+x0 <- list()
+verosimilitud <- list()
+ajuste_max <- list()
+parametermc <- list()
+solucionesmv <- list()
+
+x0[[1]] <- c(sua_poblacion[2,3] - (bd_estimacion[2,2] + 0.9046*bd_estimacion[1,2]), 
+             bd_estimacion[2,2], 0.9046*bd_estimacion[1,2])
+# write.csv(sua_poblacion, "C:/Users/User/Downloads/sua_poblacion.csv")
+delta_pob = NULL
+for (i in 2:650) {
+  delta_pob[i] = sua_poblacion[i,3] - sua_poblacion[(i-1),3]
+}
+Lambda = mean(na.omit(delta_pob)) # Estimación de Lambda 
+mu = 692.3/100000 # Estimación de mu 
+
+library(deSolve)
+sir_IRA <- function(t,x,parameter){
+  S <- x[1]
+  I <- x[2]
+  R <- x[3]
+  with(as.list(parameter),
+       {
+         dS <- Lambda - parameter[1]*S*I - mu*S # https://datosmacro.expansion.com/
+         dI <- parameter[1]*S*I - parameter[2]*I - mu*I
+         dR <- parameter[2]*I - mu*R
+         res <- c(dS, dI, dR)
+         list(res)
+       })
+}
+
+# install.packages("bbmle")
+require(bbmle)
+library(deSolve)
+
+verosimilitud[[1]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[1]], intervalos[[1]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[1]], 2]-out[,3])^2)/
+               length(intervalos[[1]]))
+  - sum(dnorm(bd_estimacion[intervalos[[1]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[1]] <- mle2(verosimilitud[[1]], 
+                        start=list(lbeta= 0.0000000095,
+                                   lgamma= 0.00000001),  
+                        method="BFGS",
+                        control=list(maxit=1E5,trace=0),
+                        trace=FALSE)
+summary(ajuste_max[[1]])
+
+parametermc[[1]] <- c(ajuste_max[[1]]@coef)
+solucionesmv[[1]] <- ode(y=x0[[1]], intervalos[[1]], 
+                         sir_IRA, 
+                         parametermc[[1]])
+
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[1]],1])
+lines(solucionesmv[[1]][,3])
+
+x0[[2]] <- c(solucionesmv[[1]][21, 2], 
+             bd_estimacion[tail(intervalos[[1]], 1),2], 
+             solucionesmv[[1]][21, 4])
+verosimilitud[[2]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[2]], intervalos[[2]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[2]], 2]-out[,3])^2)/
+               length(intervalos[[2]]))
+  - sum(dnorm(bd_estimacion[intervalos[[2]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[2]] <- mle2(verosimilitud[[2]], 
+                        start=list(lbeta= 0.0000000095,
+                                   lgamma= 0.04),  
+                        method="BFGS",
+                        control=list(maxit=1E5,trace=0),
+                        trace=FALSE)
+parametermc[[2]] <- c(ajuste_max[[2]]@coef)
+solucionesmv[[2]] <- ode(y=x0[[2]], intervalos[[2]], 
+                         sir_IRA, parametermc[[2]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[2]],1])
+lines(solucionesmv[[2]][,3])
+
+x0[[3]] <- c(solucionesmv[[2]][length(intervalos[[2]]), 2], 
+             bd_estimacion[tail(intervalos[[2]], 1),2], 
+             solucionesmv[[2]][length(intervalos[[2]]), 4])
+verosimilitud[[3]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[3]], intervalos[[3]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[3]], 2]-out[,3])^2)/
+               length(intervalos[[3]]))
+  - sum(dnorm(bd_estimacion[intervalos[[3]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[3]] <- mle2(verosimilitud[[3]], 
+                        start=list(lbeta= 0.000000009,
+                                   lgamma= 0.01),  
+                        method="BFGS",
+                        control=list(maxit=1E5,trace=0),
+                        trace=FALSE)
+parametermc[[3]] <- c(ajuste_max[[3]]@coef)
+solucionesmv[[3]] <- ode(y=x0[[3]], intervalos[[3]], 
+                         sir_IRA, parametermc[[3]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[3]],1])
+lines(solucionesmv[[3]][,3])
+
+x0[[4]] <- c(solucionesmv[[3]][length(intervalos[[3]]), 2], 
+             bd_estimacion[tail(intervalos[[3]], 1),2], 
+             solucionesmv[[3]][length(intervalos[[3]]), 4])
+verosimilitud[[4]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[4]], intervalos[[4]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[4]], 2]-out[,3])^2)/
+               length(intervalos[[4]]))
+  - sum(dnorm(bd_estimacion[intervalos[[4]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[4]] <- mle2(verosimilitud[[4]], 
+                        start=list(lbeta= 0.00000000192,
+                                   lgamma= 0.005),  
+                        method="BFGS",
+                        control=list(maxit=1E5,trace=0),
+                        trace=FALSE)
+parametermc[[4]] <- c(ajuste_max[[4]]@coef)
+solucionesmv[[4]] <- ode(y=x0[[4]], intervalos[[4]], 
+                         sir_IRA, parametermc[[4]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[4]],1])
+lines(solucionesmv[[4]][,3])
+
+x0[[5]] <- c(solucionesmv[[4]][length(intervalos[[4]]), 2], 
+             bd_estimacion[tail(intervalos[[4]], 1),2], 
+             solucionesmv[[4]][length(intervalos[[4]]), 4])
+verosimilitud[[5]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[5]], intervalos[[5]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[5]], 2]-out[,3])^2)/
+               length(intervalos[[5]]))
+  - sum(dnorm(bd_estimacion[intervalos[[5]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[5]] <- mle2(verosimilitud[[5]], 
+                        start=list(lbeta= 0.000000009985,
+                                   lgamma= 0.005),  
+                        method="BFGS",
+                        control=list(maxit=1E5,trace=0),
+                        trace=FALSE)
+parametermc[[5]] <- c(ajuste_max[[5]]@coef)
+solucionesmv[[5]] <- ode(y=x0[[5]], intervalos[[5]], 
+                         sir_IRA, parametermc[[5]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[5]],1])
+lines(solucionesmv[[5]][,3])
+
+x0[[6]] <- c(solucionesmv[[5]][length(intervalos[[5]]), 2], 
+             bd_estimacion[tail(intervalos[[5]], 1),2], 
+             solucionesmv[[5]][length(intervalos[[5]]), 4])
+verosimilitud[[6]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[6]], intervalos[[6]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[6]], 2]-out[,3])^2)/
+               length(intervalos[[6]]))
+  - sum(dnorm(bd_estimacion[intervalos[[6]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[6]] <- mle2(verosimilitud[[6]], 
+                        start=list(lbeta= 0.000000016,
+                                   lgamma= 0.03),  
+                        method="BFGS",
+                        control=list(maxit=1E5,trace=0),
+                        trace=FALSE)
+parametermc[[6]] <- c(ajuste_max[[6]]@coef)
+solucionesmv[[6]] <- ode(y=x0[[6]], intervalos[[6]], 
+                         sir_IRA, parametermc[[6]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[6]],1])
+lines(solucionesmv[[6]][,3])
+
+x0[[7]] <- c(solucionesmv[[6]][length(intervalos[[6]]), 2], 
+             bd_estimacion[tail(intervalos[[6]], 1),2], 
+             solucionesmv[[6]][length(intervalos[[6]]), 4])
+verosimilitud[[7]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[7]], intervalos[[7]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[7]], 2]-out[,3])^2)/
+               length(intervalos[[7]]))
+  - sum(dnorm(bd_estimacion[intervalos[[7]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[7]] <- mle2(verosimilitud[[7]], 
+                        start=list(lbeta= 0.00000001,
+                                   lgamma= 0.00000001),  
+                        method="BFGS",
+                        control=list(maxit=1E5,trace=0),
+                        trace=FALSE)
+parametermc[[7]] <- c(ajuste_max[[7]]@coef)
+solucionesmv[[7]] <- ode(y=x0[[7]], intervalos[[7]], 
+                         sir_IRA, parametermc[[7]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[7]],1])
+lines(solucionesmv[[7]][,3])
+
+x0[[8]] <- c(solucionesmv[[7]][length(intervalos[[7]]), 2], 
+             bd_estimacion[tail(intervalos[[7]], 1),2], 
+             solucionesmv[[7]][length(intervalos[[7]]), 4])
+verosimilitud[[8]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[8]], intervalos[[8]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[8]], 2]-out[,3])^2)/
+               length(intervalos[[8]]))
+  - sum(dnorm(bd_estimacion[intervalos[[8]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[8]] <- mle2(verosimilitud[[8]], 
+                        start=list(lbeta= 0.00000000085,
+                                   lgamma= 0.0001),  
+                        method="BFGS",
+                        control=list(maxit=1E5,trace=0),
+                        trace=FALSE)
+parametermc[[8]] <- c(ajuste_max[[8]]@coef)
+solucionesmv[[8]] <- ode(y=x0[[8]], intervalos[[8]], 
+                         sir_IRA, parametermc[[8]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[8]],1])
+lines(solucionesmv[[8]][,3])
+
+x0[[9]] <- c(solucionesmv[[8]][length(intervalos[[8]]), 2], 
+             bd_estimacion[tail(intervalos[[8]], 1),2], 
+             solucionesmv[[8]][length(intervalos[[8]]), 4])
+verosimilitud[[9]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[9]], intervalos[[9]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[9]], 2]-out[,3])^2)/
+               length(intervalos[[9]]))
+  - sum(dnorm(bd_estimacion[intervalos[[9]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[9]] <- mle2(verosimilitud[[9]], 
+                        start=list(lbeta= 0.00000001,
+                                   lgamma= 0.00001),  
+                        method="BFGS",
+                        control=list(maxit=1E5,trace=0),
+                        trace=FALSE)
+parametermc[[9]] <- c(ajuste_max[[9]]@coef)
+solucionesmv[[9]] <- ode(y=x0[[9]], intervalos[[9]], 
+                         sir_IRA, parametermc[[9]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[9]],1])
+lines(solucionesmv[[9]][,3])
+
+x0[[10]] <- c(solucionesmv[[9]][length(intervalos[[9]]), 2], 
+             bd_estimacion[tail(intervalos[[9]], 1),2], 
+             solucionesmv[[9]][length(intervalos[[9]]), 4])
+verosimilitud[[10]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[10]], intervalos[[10]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[10]], 2]-out[,3])^2)/
+               length(intervalos[[10]]))
+  - sum(dnorm(bd_estimacion[intervalos[[10]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[10]] <- mle2(verosimilitud[[10]], 
+                        start=list(lbeta= 0.0000000008,
+                                   lgamma= 0.0001),  
+                        method="BFGS",
+                        control=list(maxit=1E5,trace=0),
+                        trace=FALSE)
+parametermc[[10]] <- c(ajuste_max[[10]]@coef)
+solucionesmv[[10]] <- ode(y=x0[[10]], intervalos[[10]], 
+                         sir_IRA, parametermc[[10]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[10]],1])
+lines(solucionesmv[[10]][,3])
+
+x0[[11]] <- c(solucionesmv[[10]][length(intervalos[[10]]), 2], 
+              bd_estimacion[tail(intervalos[[10]], 1),2], 
+              solucionesmv[[10]][length(intervalos[[10]]), 4])
+verosimilitud[[11]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[11]], intervalos[[11]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[11]], 2]-out[,3])^2)/
+               length(intervalos[[11]]))
+  - sum(dnorm(bd_estimacion[intervalos[[11]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[11]] <- mle2(verosimilitud[[11]], 
+                         start=list(lbeta= 0.000000015,
+                                    lgamma= 0.00001),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[11]] <- c(ajuste_max[[11]]@coef)
+solucionesmv[[11]] <- ode(y=x0[[11]], intervalos[[11]], 
+                          sir_IRA, parametermc[[11]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[11]],1])
+lines(solucionesmv[[11]][,3])
+
+x0[[12]] <- c(solucionesmv[[11]][length(intervalos[[11]]), 2], 
+              bd_estimacion[tail(intervalos[[11]], 1),2], 
+              solucionesmv[[11]][length(intervalos[[11]]), 4])
+verosimilitud[[12]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[12]], intervalos[[12]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[12]], 2]-out[,3])^2)/
+               length(intervalos[[12]]))
+  - sum(dnorm(bd_estimacion[intervalos[[12]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[12]] <- mle2(verosimilitud[[12]], 
+                         start=list(lbeta= 0.00000001,
+                                    lgamma= 0.0015),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[12]] <- c(ajuste_max[[12]]@coef)
+solucionesmv[[12]] <- ode(y=x0[[12]], intervalos[[12]], 
+                          sir_IRA, parametermc[[12]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[12]],1])
+lines(solucionesmv[[12]][,3])
+
+x0[[13]] <- c(solucionesmv[[12]][length(intervalos[[12]]), 2], 
+              bd_estimacion[tail(intervalos[[12]], 1),2], 
+              solucionesmv[[12]][length(intervalos[[12]]), 4])
+verosimilitud[[13]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[13]], intervalos[[13]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[13]], 2]-out[,3])^2)/
+               length(intervalos[[13]]))
+  - sum(dnorm(bd_estimacion[intervalos[[13]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[13]] <- mle2(verosimilitud[[13]], 
+                         start=list(lbeta= 0.0000000015,
+                                    lgamma= 0.0015),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[13]] <- c(ajuste_max[[13]]@coef)
+solucionesmv[[13]] <- ode(y=x0[[13]], intervalos[[13]], 
+                          sir_IRA, parametermc[[13]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[13]],1])
+lines(solucionesmv[[13]][,3])
+
+x0[[14]] <- c(solucionesmv[[13]][length(intervalos[[13]]), 2], 
+              bd_estimacion[tail(intervalos[[13]], 1),2], 
+              solucionesmv[[13]][length(intervalos[[13]]), 4])
+verosimilitud[[14]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[14]], intervalos[[14]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[14]], 2]-out[,3])^2)/
+               length(intervalos[[14]]))
+  - sum(dnorm(bd_estimacion[intervalos[[14]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[14]] <- mle2(verosimilitud[[14]], 
+                         start=list(lbeta= 0.0000000175,
+                                    lgamma= 0.00032),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[14]] <- c(ajuste_max[[14]]@coef)
+solucionesmv[[14]] <- ode(y=x0[[14]], intervalos[[14]], 
+                          sir_IRA, parametermc[[14]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[14]],1])
+lines(solucionesmv[[14]][,3])
+
+x0[[15]] <- c(solucionesmv[[14]][length(intervalos[[14]]), 2], 
+              bd_estimacion[tail(intervalos[[14]], 1),2], 
+              solucionesmv[[14]][length(intervalos[[14]]), 4])
+verosimilitud[[15]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[15]], intervalos[[15]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[15]], 2]-out[,3])^2)/
+               length(intervalos[[15]]))
+  - sum(dnorm(bd_estimacion[intervalos[[15]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[15]] <- mle2(verosimilitud[[15]], 
+                         start=list(lbeta= 0.00000000455,
+                                    lgamma= 0.00005),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[15]] <- c(ajuste_max[[15]]@coef)
+solucionesmv[[15]] <- ode(y=x0[[15]], intervalos[[15]], 
+                          sir_IRA, parametermc[[15]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[15]],1])
+lines(solucionesmv[[15]][,3])
+
+x0[[16]] <- c(solucionesmv[[15]][length(intervalos[[15]]), 2], 
+              bd_estimacion[tail(intervalos[[15]], 1),2], 
+              solucionesmv[[15]][length(intervalos[[15]]), 4])
+verosimilitud[[16]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[16]], intervalos[[16]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[16]], 2]-out[,3])^2)/
+               length(intervalos[[16]]))
+  - sum(dnorm(bd_estimacion[intervalos[[16]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[16]] <- mle2(verosimilitud[[16]], 
+                         start=list(lbeta= 0.00000000765,
+                                    lgamma= 0.000005),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[16]] <- c(ajuste_max[[16]]@coef)
+solucionesmv[[16]] <- ode(y=x0[[16]], intervalos[[16]], 
+                          sir_IRA, parametermc[[16]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[16]],1])
+lines(solucionesmv[[16]][,3])
+
+x0[[17]] <- c(solucionesmv[[16]][length(intervalos[[16]]), 2], 
+              bd_estimacion[tail(intervalos[[16]], 1),2], 
+              solucionesmv[[16]][length(intervalos[[16]]), 4])
+verosimilitud[[17]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[17]], intervalos[[17]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[17]], 2]-out[,3])^2)/
+               length(intervalos[[17]]))
+  - sum(dnorm(bd_estimacion[intervalos[[17]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[17]] <- mle2(verosimilitud[[17]], 
+                         start=list(lbeta= 0.0000000075,
+                                    lgamma= 0.000005),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[17]] <- c(ajuste_max[[17]]@coef)
+solucionesmv[[17]] <- ode(y=x0[[17]], intervalos[[17]], 
+                          sir_IRA, parametermc[[17]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[17]],1])
+lines(solucionesmv[[17]][,3])
+
+x0[[18]] <- c(solucionesmv[[17]][length(intervalos[[17]]), 2], 
+              bd_estimacion[tail(intervalos[[17]], 1),2], 
+              solucionesmv[[17]][length(intervalos[[17]]), 4])
+verosimilitud[[18]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[18]], intervalos[[18]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[18]], 2]-out[,3])^2)/
+               length(intervalos[[18]]))
+  - sum(dnorm(bd_estimacion[intervalos[[18]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[18]] <- mle2(verosimilitud[[18]], 
+                         start=list(lbeta= 0.000000032,
+                                    lgamma= 0.0000005),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[18]] <- c(ajuste_max[[18]]@coef)
+solucionesmv[[18]] <- ode(y=x0[[18]], intervalos[[18]], 
+                          sir_IRA, parametermc[[18]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[18]],1])
+lines(solucionesmv[[18]][,3])
+
+x0[[19]] <- c(solucionesmv[[18]][length(intervalos[[18]]), 2], 
+              bd_estimacion[tail(intervalos[[18]], 1),2], 
+              solucionesmv[[18]][length(intervalos[[18]]), 4])
+verosimilitud[[19]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[19]], intervalos[[19]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[19]], 2]-out[,3])^2)/
+               length(intervalos[[19]]))
+  - sum(dnorm(bd_estimacion[intervalos[[19]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[19]] <- mle2(verosimilitud[[19]], 
+                         start=list(lbeta= 0.0000000315,
+                                    lgamma= 0.000005),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[19]] <- c(ajuste_max[[19]]@coef)
+solucionesmv[[19]] <- ode(y=x0[[19]], intervalos[[19]], 
+                          sir_IRA, parametermc[[19]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[19]],1])
+lines(solucionesmv[[19]][,3])
+
+x0[[20]] <- c(solucionesmv[[19]][length(intervalos[[19]]), 2], 
+              bd_estimacion[tail(intervalos[[19]], 1),2], 
+              solucionesmv[[19]][length(intervalos[[19]]), 4])
+verosimilitud[[20]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[20]], intervalos[[20]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[20]], 2]-out[,3])^2)/
+               length(intervalos[[20]]))
+  - sum(dnorm(bd_estimacion[intervalos[[20]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[20]] <- mle2(verosimilitud[[20]], 
+                         start=list(lbeta= 0.00000002,
+                                    lgamma= 0.0005),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[20]] <- c(ajuste_max[[20]]@coef)
+solucionesmv[[20]] <- ode(y=x0[[20]], intervalos[[20]], 
+                          sir_IRA, parametermc[[20]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[20]],1])
+lines(solucionesmv[[20]][,3])
+
+x0[[21]] <- c(solucionesmv[[20]][length(intervalos[[20]]), 2], 
+              bd_estimacion[tail(intervalos[[20]], 1),2], 
+              solucionesmv[[20]][length(intervalos[[20]]), 4])
+verosimilitud[[21]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[21]], intervalos[[21]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[21]], 2]-out[,3])^2)/
+               length(intervalos[[21]]))
+  - sum(dnorm(bd_estimacion[intervalos[[21]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[21]] <- mle2(verosimilitud[[21]], 
+                         start=list(lbeta= 0.00000000288,
+                                    lgamma= 0.0005),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[21]] <- c(ajuste_max[[21]]@coef)
+solucionesmv[[21]] <- ode(y=x0[[21]], intervalos[[21]], 
+                          sir_IRA, parametermc[[21]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[21]],1])
+lines(solucionesmv[[21]][,3])
+
+x0[[22]] <- c(solucionesmv[[21]][length(intervalos[[21]]), 2], 
+              bd_estimacion[tail(intervalos[[21]], 1),2], 
+              solucionesmv[[21]][length(intervalos[[21]]), 4])
+verosimilitud[[22]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[22]], intervalos[[22]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[22]], 2]-out[,3])^2)/
+               length(intervalos[[22]]))
+  - sum(dnorm(bd_estimacion[intervalos[[22]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[22]] <- mle2(verosimilitud[[22]], 
+                         start=list(lbeta= 0.000000055,
+                                    lgamma= 0.00005),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[22]] <- c(ajuste_max[[22]]@coef)
+solucionesmv[[22]] <- ode(y=x0[[22]], intervalos[[22]], 
+                          sir_IRA, parametermc[[22]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[22]],1])
+lines(solucionesmv[[22]][,3])
+
+x0[[23]] <- c(solucionesmv[[22]][length(intervalos[[22]]), 2], 
+              bd_estimacion[tail(intervalos[[22]], 1),2], 
+              solucionesmv[[22]][length(intervalos[[22]]), 4])
+verosimilitud[[23]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[23]], intervalos[[23]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[23]], 2]-out[,3])^2)/
+               length(intervalos[[23]]))
+  - sum(dnorm(bd_estimacion[intervalos[[23]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[23]] <- mle2(verosimilitud[[23]], 
+                         start=list(lbeta= 0.0000000055,
+                                    lgamma= 0.00005),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[23]] <- c(ajuste_max[[23]]@coef)
+solucionesmv[[23]] <- ode(y=x0[[23]], intervalos[[23]], 
+                          sir_IRA, parametermc[[23]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[23]],1])
+lines(solucionesmv[[23]][,3])
+
+x0[[24]] <- c(solucionesmv[[23]][length(intervalos[[23]]), 2], 
+              bd_estimacion[tail(intervalos[[23]], 1),2], 
+              solucionesmv[[23]][length(intervalos[[23]]), 4])
+verosimilitud[[24]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[24]], intervalos[[24]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[24]], 2]-out[,3])^2)/
+               length(intervalos[[24]]))
+  - sum(dnorm(bd_estimacion[intervalos[[24]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[24]] <- mle2(verosimilitud[[24]], 
+                         start=list(lbeta= 0.000000041,
+                                    lgamma= 0.00005),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[24]] <- c(ajuste_max[[24]]@coef)
+solucionesmv[[24]] <- ode(y=x0[[24]], intervalos[[24]], 
+                          sir_IRA, parametermc[[24]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[24]],1])
+lines(solucionesmv[[24]][,3])
+
+x0[[25]] <- c(solucionesmv[[24]][length(intervalos[[24]]), 2], 
+              bd_estimacion[tail(intervalos[[24]], 1),2], 
+              solucionesmv[[24]][length(intervalos[[24]]), 4])
+verosimilitud[[25]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[25]], intervalos[[25]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[25]], 2]-out[,3])^2)/
+               length(intervalos[[25]]))
+  - sum(dnorm(bd_estimacion[intervalos[[25]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[25]] <- mle2(verosimilitud[[25]], 
+                         start=list(lbeta= 0.0000000345,
+                                    lgamma= 0.00005),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[25]] <- c(ajuste_max[[25]]@coef)
+solucionesmv[[25]] <- ode(y=x0[[25]], intervalos[[25]], 
+                          sir_IRA, parametermc[[25]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[25]],1])
+lines(solucionesmv[[25]][,3])
+
+x0[[26]] <- c(solucionesmv[[25]][length(intervalos[[25]]), 2], 
+              bd_estimacion[tail(intervalos[[25]], 1),2], 
+              solucionesmv[[25]][length(intervalos[[25]]), 4])
+verosimilitud[[26]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[26]], intervalos[[26]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[26]], 2]-out[,3])^2)/
+               length(intervalos[[26]]))
+  - sum(dnorm(bd_estimacion[intervalos[[26]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[26]] <- mle2(verosimilitud[[26]], 
+                         start=list(lbeta= 0.0000000345,
+                                    lgamma= 0.00005),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[26]] <- c(ajuste_max[[26]]@coef)
+solucionesmv[[26]] <- ode(y=x0[[26]], intervalos[[26]], 
+                          sir_IRA, parametermc[[26]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[26]],1])
+lines(solucionesmv[[26]][,3])
+
+x0[[27]] <- c(solucionesmv[[26]][length(intervalos[[26]]), 2], 
+              bd_estimacion[tail(intervalos[[26]], 1),2], 
+              solucionesmv[[26]][length(intervalos[[26]]), 4])
+verosimilitud[[27]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[27]], intervalos[[27]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[27]], 2]-out[,3])^2)/
+               length(intervalos[[27]]))
+  - sum(dnorm(bd_estimacion[intervalos[[27]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[27]] <- mle2(verosimilitud[[27]], 
+                         start=list(lbeta= 0.000000095,
+                                    lgamma= 0.0005),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[27]] <- c(ajuste_max[[27]]@coef)
+solucionesmv[[27]] <- ode(y=x0[[27]], intervalos[[27]], 
+                          sir_IRA, parametermc[[27]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[27]],1])
+lines(solucionesmv[[27]][,3])
+
+x0[[28]] <- c(solucionesmv[[27]][length(intervalos[[27]]), 2], 
+              bd_estimacion[tail(intervalos[[27]], 1),2], 
+              solucionesmv[[27]][length(intervalos[[27]]), 4])
+verosimilitud[[28]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[28]], intervalos[[28]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[28]], 2]-out[,3])^2)/
+               length(intervalos[[28]]))
+  - sum(dnorm(bd_estimacion[intervalos[[28]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[28]] <- mle2(verosimilitud[[28]], 
+                         start=list(lbeta= 0.000000015,
+                                    lgamma= 0.0005),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[28]] <- c(ajuste_max[[28]]@coef)
+solucionesmv[[28]] <- ode(y=x0[[28]], intervalos[[28]], 
+                          sir_IRA, parametermc[[28]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[28]],1])
+lines(solucionesmv[[28]][,3])
+
+x0[[29]] <- c(solucionesmv[[28]][length(intervalos[[28]]), 2], 
+              bd_estimacion[tail(intervalos[[28]], 1),2], 
+              solucionesmv[[28]][length(intervalos[[28]]), 4])
+verosimilitud[[29]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[29]], intervalos[[29]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[29]], 2]-out[,3])^2)/
+               length(intervalos[[29]]))
+  - sum(dnorm(bd_estimacion[intervalos[[29]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[29]] <- mle2(verosimilitud[[29]], 
+                         start=list(lbeta= 0.0000000195773089,
+                                    lgamma= 0.0013492),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[29]] <- c(ajuste_max[[29]]@coef)
+solucionesmv[[29]] <- ode(y=x0[[29]], intervalos[[29]], 
+                          sir_IRA, parametermc[[29]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[29]],1])
+lines(solucionesmv[[29]][,3])
+
+x0[[30]] <- c(solucionesmv[[29]][length(intervalos[[29]]), 2], 
+              bd_estimacion[tail(intervalos[[29]], 1),2], 
+              solucionesmv[[29]][length(intervalos[[29]]), 4])
+verosimilitud[[30]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[30]], intervalos[[30]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[30]], 2]-out[,3])^2)/
+               length(intervalos[[30]]))
+  - sum(dnorm(bd_estimacion[intervalos[[30]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[30]] <- mle2(verosimilitud[[30]], 
+                       start=list(lbeta= 0.00000005398,
+                                  lgamma= 0.001),  
+                       method="BFGS",
+                       control=list(maxit=1E5,trace=0),
+                       trace=FALSE)
+parametermc[[30]] <- c(ajuste_max[[30]]@coef)
+solucionesmv[[30]] <- ode(y=x0[[30]], intervalos[[30]], 
+                        sir_IRA, parametermc[[30]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[30]],1])
+lines(solucionesmv[[30]][,3])
+
+x0[[30]] <- c(solucionesmv[[29]][length(intervalos[[29]]), 2], 
+              bd_estimacion[tail(intervalos[[29]], 1),2], 
+              solucionesmv[[29]][length(intervalos[[29]]), 4])
+verosimilitud[[30]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[30]], intervalos[[30]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[30]], 2]-out[,3])^2)/
+               length(intervalos[[30]]))
+  - sum(dnorm(bd_estimacion[intervalos[[30]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[30]] <- mle2(verosimilitud[[30]], 
+                         start=list(lbeta= 0.00000005398,
+                                    lgamma= 0.001),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[30]] <- c(ajuste_max[[30]]@coef)
+solucionesmv[[30]] <- ode(y=x0[[30]], intervalos[[30]], 
+                          sir_IRA, parametermc[[30]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[30]],1])
+lines(solucionesmv[[30]][,3])
+
+x0[[31]] <- c(solucionesmv[[30]][length(intervalos[[30]]), 2], 
+              bd_estimacion[tail(intervalos[[30]], 1),2], 
+              solucionesmv[[30]][length(intervalos[[30]]), 4])
+verosimilitud[[31]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[31]], intervalos[[31]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[31]], 2]-out[,3])^2)/
+               length(intervalos[[31]]))
+  - sum(dnorm(bd_estimacion[intervalos[[31]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[31]] <- mle2(verosimilitud[[31]], 
+                         start=list(lbeta= 0.0000000525,
+                                    lgamma= 0.001),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[31]] <- c(ajuste_max[[31]]@coef)
+solucionesmv[[31]] <- ode(y=x0[[31]], intervalos[[31]], 
+                          sir_IRA, parametermc[[31]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[31]],1])
+lines(solucionesmv[[31]][,3])
+
+x0[[32]] <- c(solucionesmv[[31]][length(intervalos[[31]]), 2], 
+              bd_estimacion[tail(intervalos[[31]], 1),2], 
+              solucionesmv[[31]][length(intervalos[[31]]), 4])
+verosimilitud[[32]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[32]], intervalos[[32]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[32]], 2]-out[,3])^2)/
+               length(intervalos[[32]]))
+  - sum(dnorm(bd_estimacion[intervalos[[32]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[32]] <- mle2(verosimilitud[[32]], 
+                         start=list(lbeta= 0.000000124,
+                                    lgamma= 0.001),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[32]] <- c(ajuste_max[[32]]@coef)
+solucionesmv[[32]] <- ode(y=x0[[32]], intervalos[[32]], 
+                          sir_IRA, parametermc[[32]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[32]],1])
+lines(solucionesmv[[32]][,3])
+
+x0[[33]] <- c(solucionesmv[[32]][length(intervalos[[32]]), 2], 
+              bd_estimacion[tail(intervalos[[32]], 1),2], 
+              solucionesmv[[32]][length(intervalos[[32]]), 4])
+verosimilitud[[33]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[33]], intervalos[[33]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[33]], 2]-out[,3])^2)/
+               length(intervalos[[33]]))
+  - sum(dnorm(bd_estimacion[intervalos[[33]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[33]] <- mle2(verosimilitud[[33]], 
+                         start=list(lbeta= 0.000000128,
+                                    lgamma= 0.001),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[33]] <- c(ajuste_max[[33]]@coef)
+solucionesmv[[33]] <- ode(y=x0[[33]], intervalos[[33]], 
+                          sir_IRA, parametermc[[33]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[33]],1])
+lines(solucionesmv[[33]][,3])
+
+x0[[34]] <- c(solucionesmv[[33]][length(intervalos[[33]]), 2], 
+              bd_estimacion[tail(intervalos[[33]], 1),2], 
+              solucionesmv[[33]][length(intervalos[[33]]), 4])
+verosimilitud[[34]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[34]], intervalos[[34]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[34]], 2]-out[,3])^2)/
+               length(intervalos[[34]]))
+  - sum(dnorm(bd_estimacion[intervalos[[34]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[34]] <- mle2(verosimilitud[[34]], 
+                         start=list(lbeta= 0.0000000155,
+                                    lgamma= 0.0002),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[34]] <- c(ajuste_max[[34]]@coef)
+solucionesmv[[34]] <- ode(y=x0[[34]], intervalos[[34]], 
+                          sir_IRA, parametermc[[34]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[34]],1])
+lines(solucionesmv[[34]][,3])
+
+x0[[35]] <- c(solucionesmv[[34]][length(intervalos[[34]]), 2], 
+              bd_estimacion[tail(intervalos[[34]], 1),2], 
+              solucionesmv[[34]][length(intervalos[[34]]), 4])
+verosimilitud[[35]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[35]], intervalos[[35]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[35]], 2]-out[,3])^2)/
+               length(intervalos[[35]]))
+  - sum(dnorm(bd_estimacion[intervalos[[35]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[35]] <- mle2(verosimilitud[[35]], 
+                         start=list(lbeta= 0.000000024,
+                                    lgamma= 0.0002),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[35]] <- c(ajuste_max[[35]]@coef)
+solucionesmv[[35]] <- ode(y=x0[[35]], intervalos[[35]], 
+                          sir_IRA, parametermc[[35]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[35]],1])
+lines(solucionesmv[[35]][,3])
+
+x0[[36]] <- c(solucionesmv[[35]][length(intervalos[[35]]), 2], 
+              bd_estimacion[tail(intervalos[[35]], 1),2], 
+              solucionesmv[[35]][length(intervalos[[35]]), 4])
+verosimilitud[[36]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[36]], intervalos[[36]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[36]], 2]-out[,3])^2)/
+               length(intervalos[[36]]))
+  - sum(dnorm(bd_estimacion[intervalos[[36]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[36]] <- mle2(verosimilitud[[36]], 
+                         start=list(lbeta= 0.000000256,
+                                    lgamma= 0.0002),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[36]] <- c(ajuste_max[[36]]@coef)
+solucionesmv[[36]] <- ode(y=x0[[36]], intervalos[[36]], 
+                          sir_IRA, parametermc[[36]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[36]],1])
+lines(solucionesmv[[36]][,3])
+
+x0[[37]] <- c(solucionesmv[[36]][length(intervalos[[36]]), 2], 
+              bd_estimacion[tail(intervalos[[36]], 1),2], 
+              solucionesmv[[36]][length(intervalos[[36]]), 4])
+verosimilitud[[37]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[37]], intervalos[[37]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[37]], 2]-out[,3])^2)/
+               length(intervalos[[37]]))
+  - sum(dnorm(bd_estimacion[intervalos[[37]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[37]] <- mle2(verosimilitud[[37]], 
+                         start=list(lbeta= 0.0000002515,
+                                    lgamma= 0.0002),  
+                         method="BFGS",
+                         control=list(maxit=1E5,trace=0),
+                         trace=FALSE)
+parametermc[[37]] <- c(ajuste_max[[37]]@coef)
+solucionesmv[[37]] <- ode(y=x0[[37]], intervalos[[37]], 
+                          sir_IRA, parametermc[[37]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[37]],1])
+lines(solucionesmv[[37]][,3])
+
+x0[[38]] <- c(solucionesmv[[37]][length(intervalos[[37]]), 2], 
+              bd_estimacion[tail(intervalos[[37]], 1),2], 
+              solucionesmv[[37]][length(intervalos[[37]]), 4])
+verosimilitud[[38]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[38]], intervalos[[38]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[38]], 2]-out[,3])^2)/
+               length(intervalos[[38]]))
+  - sum(dnorm(bd_estimacion[intervalos[[38]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[38]] <- mle2(verosimilitud[[38]], 
+                         start=list(lbeta= 0.00000005,
+                                    lgamma= 0.0000168),  
+                         method="BFGS",
+                         control=list(maxit=1E6,trace=0),
+                         trace=FALSE)
+parametermc[[38]] <- c(ajuste_max[[38]]@coef)
+solucionesmv[[38]] <- ode(y=x0[[38]], intervalos[[38]], 
+                          sir_IRA, parametermc[[38]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[38]],1])
+lines(solucionesmv[[38]][,3])
+
+x0[[39]] <- c(solucionesmv[[38]][length(intervalos[[38]]), 2], 
+              bd_estimacion[tail(intervalos[[38]], 1),2], 
+              solucionesmv[[38]][length(intervalos[[38]]), 4])
+verosimilitud[[39]] <- function(lbeta, lgamma) {
+  parms <- c(beta= lbeta, 
+             gamma = lgamma)
+  out <- ode(y=x0[[39]], intervalos[[39]], sir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[39]], 2]-out[,3])^2)/
+               length(intervalos[[39]]))
+  - sum(dnorm(bd_estimacion[intervalos[[39]], 2], mean=out[,3], 
+              sd=SD, log=TRUE))
+}
+ajuste_max[[39]] <- mle2(verosimilitud[[39]], 
+                         start=list(lbeta= 0.0000002554,
+                                    lgamma= 0.000017),  
+                         method="BFGS",
+                         control=list(maxit=1E6,trace=0),
+                         trace=FALSE)
+parametermc[[39]] <- c(ajuste_max[[39]]@coef)
+solucionesmv[[39]] <- ode(y=x0[[39]], intervalos[[39]], 
+                          sir_IRA, parametermc[[39]])
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[39]],1])
+lines(solucionesmv[[39]][,3])
+
+cortes = list()
+for (i in 1:39) {
+  cortes[[i]] = intervalos[[i]][1]
+}
+cortes = unlist(cortes)
+
+plot(inr, pch = 20)
+lines(ins, lwd = 2)
+abline(v = cortes)
+
+plot(IRA_bog_fin_datos[, 3], pch = 20)
+for (j in 1:39) {
+  lines(intervalos[[j]], solucionesmv[[j]][,3], lwd = 2, col = "blue")
+}
+for (i in 1:39) {
+  lines(intervalos[[i]], sua_datos_mod_SIRSEIR_df[intervalos[[i]],1], lwd = 2, col = "red")
+}
+abline(v = cortes)
+
+sol_datos = list()
+for (i in 1:39) {sol_datos[[i]] = sua_datos_mod_SIRSEIR_df[intervalos[[i]],1]}
+sol_infec = list()
+for (i in 1:39) {sol_infec[[i]] = solucionesmv[[i]][,3]}
+datos_inf = list()
+for (i in 1:39) {datos_inf[[i]] = IRA_bog_fin_datos[intervalos[[i]], 3]}
+
+inr = NULL 
+inr = unlist(sol_datos)
+ins = NULL 
+ins = unlist(sol_infec)
+datos_inf_v = NULL
+datos_inf_v = unlist(datos_inf)
+
+fechas = list()
+for (k in 1:39) {
+  fechas[[k]] = as.character((as.Date(dias_antes) + 3)[intervalos[[k]]])
+}
+
+datos_pob1 = data.frame(as.Date(unlist(fechas)), inr, ins, datos_inf_v)
+
+color_poblac_1 <- c("Datos\n infectados" = "orchid1", "Datos de infectados\n suavizado" = "red4", 
+                    "Solución de infectados\n estimado" = "firebrick1")
+library(ggplot2)
+grafica_pob1 <- ggplot(data = datos_pob1) + 
+  geom_point(aes(x = datos_pob1[, 1], y = datos_pob1[, 4], color = "Datos\n infectados"), 
+             size = 1.5) +
+  geom_line(aes(x = datos_pob1[, 1], y = datos_pob1[, 2], color = "Datos de infectados\n suavizado"), 
+            linewidth = 1) +
+  geom_line(aes(x = datos_pob1[, 1], y = datos_pob1[, 3], color = "Solución de infectados\n estimado"), 
+            linewidth = 1, linetype = "dashed") +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de casos')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_poblac_1, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c('solid', "blank",
+                                                              "dashed"), 
+                                                 shape = c(NA, 16, NA))))
+grafica_pob1
+
+R0_1est = NULL 
+for (j in 1:39) {
+  R0_1est[j] = Lambda*parametermc[[j]][1]/((parametermc[[j]][2] + mu))
+}
+
+sol_suscep = list()
+for (i in 1:39) {sol_suscep[[i]] = solucionesmv[[i]][,2]}
+vector_sus = unlist(sol_suscep)
+
+plot(datos_pob1[, 1], vector_sus, col = "darkblue", lwd = 2, type = "l")
+abline(v = datos_pob1[, 1][cortes])
+
+sol_recupe = list()
+for (i in 1:39) {sol_recupe[[i]] = solucionesmv[[i]][,4]}
+vector_rec = unlist(sol_recupe)
+
+plot(datos_pob1[, 1], vector_rec, col = "darkgreen", lwd = 2, type = "l")
+abline(v = datos_pob1[, 1][cortes])
+
+datos_sus_rep = data.frame(datos_pob1[, 1], vector_sus, vector_rec)
+
+library(ggplot2)
+grafica_pob1_sus <- ggplot(data = datos_sus_rep) + 
+  geom_line(aes(x = datos_sus_rep[, 1], y = datos_sus_rep[, 2]), color = "cornflowerblue",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de susceptibles')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+grafica_pob1_sus
+
+library(ggplot2)
+grafica_pob1_exp <- ggplot(data = datos_sus_rep) + 
+  geom_line(aes(x = datos_sus_rep[, 1], y = datos_sus_rep[, 3]), color = "seagreen4",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de recuperados')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+grafica_pob1_exp
+tail(intervalos[[2]], 1)
+tail(intervalos[[6]], 1)
+tail(intervalos[[35]], 1)
+(as.Date(dias_antes) + 3)[58]
+(as.Date(dias_antes) + 3)[103]
+(as.Date(dias_antes) + 3)[573]
+
+R0 = NULL
+
+for (i in 1:39) {
+  R0[i] = Lambda*parametermc[[i]][1]/(mu*(mu + parametermc[[i]][2]))
+}
+
+### Valores encontrados computacionalmente para el modelo SEIR.
+
+library(deSolve)
+seir_IRA <- function(t,x,parameter){
+  S <- x[1]
+  E <- x[2]
+  I <- x[3]
+  R <- x[4]
+  with(as.list(parameter),
+       {
+         dS <- Lambda - parameter[1]*S*I - mu*S 
+         dE <- parameter[1]*S*I - parameter[2]*E - mu*E
+         dI <- parameter[2]*E - parameter[3]*I - mu*I
+         dR <- parameter[3]*I - mu*R
+         res <- c(dS, dE, dI, dR)
+         list(res)
+       })
+}
+
+x0seir <- list()
+verosimilitudseir <- list()
+ajuste_maxseir <- list()
+parametermcseir <- list()
+solucionesmvseir <- list()
+
+R0 = 0.9046*bd_estimacion[1,2]
+I0 = bd_estimacion[2,2]
+E0 = acti_expuestos[1]
+S0 = sua_poblacion[2,3] - E0 - I0 - R0
+x0seir[[1]] <- c(S0, E0, I0, R0)
+
+require(bbmle)
+library(deSolve)
+
+verosimilitudseir[[1]] <- function(lbeta, lupsilon, lgamma) {
+  parms <- c(beta= lbeta, 
+             upsilon = lupsilon,
+             gamma = lgamma)
+  out <- ode(y=x0seir[[1]], intervalos[[1]], 
+             seir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[1]], 2]-out[,4])^2)/
+               length(intervalos[[1]])) 
+  - sum(dnorm(bd_estimacion[intervalos[[1]], 2], mean=out[,4], 
+              sd=SD, log=TRUE))
+}
+ajuste_maxseir[[1]] <- mle2(verosimilitudseir[[1]], 
+                            start=list(lbeta= 0.0000001,
+                                       lupsilon = 0.0043,
+                                       lgamma= 0.00000005), 
+                            method="BFGS",
+                            control=list(maxit=1E5,trace=0),
+                            trace=FALSE)
+summary(ajuste_maxseir[[1]])
+
+parametermcseir[[1]] <- c(ajuste_maxseir[[1]]@coef)
+solucionesmvseir[[1]] <- ode(y=x0seir[[1]], intervalos[[1]], 
+                             seir_IRA, parametermcseir[[1]])
+
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[1]],1])
+lines(solucionesmvseir[[1]][,4])
+
+x0seir[[2]] <- c(solucionesmvseir[[1]][length(intervalos[[1]]), 2], 
+                 solucionesmvseir[[1]][length(intervalos[[1]]), 3],
+                 bd_estimacion[tail(intervalos[[1]], 1),2], 
+                 solucionesmvseir[[1]][length(intervalos[[1]]), 5])
+
+verosimilitudseir[[2]] <- function(lbeta, lupsilon, lgamma) {
+  parms <- c(beta= lbeta, 
+             upsilon = lupsilon,
+             gamma = lgamma)
+  out <- ode(y=x0seir[[2]], intervalos[[2]], 
+             seir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[2]], 2]-out[,4])^2)/
+               length(intervalos[[2]])) 
+  - sum(dnorm(bd_estimacion[intervalos[[2]], 2], mean=out[,4], 
+              sd=SD, log=TRUE))
+}
+ajuste_maxseir[[2]] <- mle2(verosimilitudseir[[2]], 
+                            start=list(lbeta= 0.0000001,
+                                       lupsilon = 0.000058,# 0.00400644857,
+                                       lgamma= 0.00000005), 
+                            method="BFGS",
+                            control=list(maxit=1E5,trace=0),
+                            trace=FALSE)
+summary(ajuste_maxseir[[2]])
+
+parametermcseir[[2]] <- c(ajuste_maxseir[[2]]@coef)
+solucionesmvseir[[2]] <- ode(y=x0seir[[2]], intervalos[[2]], 
+                             seir_IRA, parametermcseir[[2]])
+
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[2]],1], 
+     ylim = c(min(c(min(sua_datos_mod_SIRSEIR_df[intervalos[[2]],1]), 
+                    min(solucionesmvseir[[2]][,4]))), 
+              max(c(max(sua_datos_mod_SIRSEIR_df[intervalos[[2]],1]), 
+                    max(solucionesmvseir[[2]][,4])))))
+lines(solucionesmvseir[[2]][,4])
+
+x0seir[[3]] <- c(solucionesmvseir[[2]][length(intervalos[[2]]), 2], 
+                 solucionesmvseir[[2]][length(intervalos[[2]]), 3],
+                 bd_estimacion[tail(intervalos[[2]], 1),2], 
+                 solucionesmvseir[[2]][length(intervalos[[2]]), 5])
+
+verosimilitudseir[[3]] <- function(lbeta, lupsilon, lgamma) {
+  parms <- c(beta= lbeta, 
+             upsilon = lupsilon,
+             gamma = lgamma)
+  out <- ode(y=x0seir[[3]], intervalos[[3]], 
+             seir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[3]], 2]-out[,4])^2)/
+               length(intervalos[[3]])) 
+  - sum(dnorm(bd_estimacion[intervalos[[3]], 2], mean=out[,4], 
+              sd=SD, log=TRUE))
+}
+ajuste_maxseir[[3]] <- mle2(verosimilitudseir[[3]], 
+                            start=list(lbeta= 0.0000001,
+                                       lupsilon = 0.00005,#46
+                                       lgamma= 0.00000005), 
+                            method="BFGS",
+                            control=list(maxit=1E5,trace=0),
+                            trace=FALSE)
+parametermcseir[[3]] <- c(ajuste_maxseir[[3]]@coef)
+solucionesmvseir[[3]] <- ode(y=x0seir[[3]], intervalos[[3]], 
+                             seir_IRA, parametermcseir[[3]])
+
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[3]],1], 
+     ylim = c(min(c(min(sua_datos_mod_SIRSEIR_df[intervalos[[3]],1]), 
+                    min(solucionesmvseir[[3]][,4]))), 
+              max(c(max(sua_datos_mod_SIRSEIR_df[intervalos[[3]],1]), 
+                    max(solucionesmvseir[[3]][,4])))))
+lines(solucionesmvseir[[3]][,4])
+
+x0seir[[4]] <- c(solucionesmvseir[[3]][length(intervalos[[3]]), 2], 
+                 solucionesmvseir[[3]][length(intervalos[[3]]), 3],
+                 bd_estimacion[tail(intervalos[[3]], 1),2], 
+                 solucionesmvseir[[3]][length(intervalos[[3]]), 5])
+
+verosimilitudseir[[4]] <- function(lbeta, lupsilon, lgamma) {
+  parms <- c(beta= lbeta, 
+             upsilon = lupsilon,
+             gamma = lgamma)
+  out <- ode(y=x0seir[[4]], intervalos[[4]], 
+             seir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[4]], 2]-out[,4])^2)/
+               length(intervalos[[4]])) 
+  - sum(dnorm(bd_estimacion[intervalos[[4]], 2], mean=out[,4], 
+              sd=SD, log=TRUE))
+}
+ajuste_maxseir[[4]] <- mle2(verosimilitudseir[[4]], 
+                            start=list(lbeta= 0.0000001,
+                                       lupsilon = 0.000117,#46
+                                       lgamma= 0.000005), 
+                            method="BFGS",
+                            control=list(maxit=1E5,trace=0),
+                            trace=FALSE)
+parametermcseir[[4]] <- c(ajuste_maxseir[[4]]@coef)
+solucionesmvseir[[4]] <- ode(y=x0seir[[4]], intervalos[[4]], 
+                             seir_IRA, parametermcseir[[4]])
+
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[4]],1], 
+     ylim = c(min(c(min(sua_datos_mod_SIRSEIR_df[intervalos[[4]],1]), 
+                    min(solucionesmvseir[[4]][,4]))), 
+              max(c(max(sua_datos_mod_SIRSEIR_df[intervalos[[4]],1]), 
+                    max(solucionesmvseir[[4]][,4])))))
+lines(solucionesmvseir[[4]][,4])
+
+x0seir[[5]] <- c(solucionesmvseir[[4]][length(intervalos[[4]]), 2], 
+                 solucionesmvseir[[4]][length(intervalos[[4]]), 3],
+                 bd_estimacion[tail(intervalos[[4]], 1),2], 
+                 solucionesmvseir[[4]][length(intervalos[[4]]), 5])
+
+verosimilitudseir[[5]] <- function(lbeta, lupsilon, lgamma) {
+  parms <- c(beta= lbeta, 
+             upsilon = lupsilon,
+             gamma = lgamma)
+  out <- ode(y=x0seir[[5]], intervalos[[5]], 
+             seir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[5]], 2]-out[,4])^2)/
+               length(intervalos[[5]])) 
+  - sum(dnorm(bd_estimacion[intervalos[[5]], 2], mean=out[,4], 
+              sd=SD, log=TRUE))
+}
+ajuste_maxseir[[5]] <- mle2(verosimilitudseir[[5]], 
+                            start=list(lbeta= 0.0000001,
+                                       lupsilon = 0.000085,#46
+                                       lgamma= 0.000005), 
+                            method="BFGS",
+                            control=list(maxit=1E5,trace=0),
+                            trace=FALSE)
+parametermcseir[[5]] <- c(ajuste_maxseir[[5]]@coef)
+solucionesmvseir[[5]] <- ode(y=x0seir[[5]], intervalos[[5]], 
+                             seir_IRA, parametermcseir[[5]])
+
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[5]],1], 
+     ylim = c(min(c(min(sua_datos_mod_SIRSEIR_df[intervalos[[5]],1]), 
+                    min(solucionesmvseir[[5]][,4]))), 
+              max(c(max(sua_datos_mod_SIRSEIR_df[intervalos[[5]],1]), 
+                    max(solucionesmvseir[[5]][,4])))))
+lines(solucionesmvseir[[5]][,4])
+
+x0seir[[6]] <- c(solucionesmvseir[[5]][length(intervalos[[5]]), 2], 
+                 solucionesmvseir[[5]][length(intervalos[[5]]), 3],
+                 bd_estimacion[tail(intervalos[[5]], 1),2], 
+                 solucionesmvseir[[5]][length(intervalos[[5]]), 5])
+
+verosimilitudseir[[6]] <- function(lbeta, lupsilon, lgamma) {
+  parms <- c(beta= lbeta, 
+             upsilon = lupsilon,
+             gamma = lgamma)
+  out <- ode(y=x0seir[[6]], intervalos[[6]], 
+             seir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[6]], 2]-out[,4])^2)/
+               length(intervalos[[6]])) 
+  - sum(dnorm(bd_estimacion[intervalos[[6]], 2], mean=out[,4], 
+              sd=SD, log=TRUE))
+}
+ajuste_maxseir[[6]] <- mle2(verosimilitudseir[[6]], 
+                            start=list(lbeta= 0.0000001,
+                                       lupsilon = 0.000085,#46
+                                       lgamma= 0.000005), 
+                            method="BFGS",
+                            control=list(maxit=1E5,trace=0),
+                            trace=FALSE)
+parametermcseir[[6]] <- c(ajuste_maxseir[[6]]@coef)
+solucionesmvseir[[6]] <- ode(y=x0seir[[6]], intervalos[[6]], 
+                             seir_IRA, parametermcseir[[6]])
+
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[6]],1], 
+     ylim = c(min(c(min(sua_datos_mod_SIRSEIR_df[intervalos[[6]],1]), 
+                    min(solucionesmvseir[[6]][,4]))), 
+              max(c(max(sua_datos_mod_SIRSEIR_df[intervalos[[6]],1]), 
+                    max(solucionesmvseir[[6]][,4])))))
+lines(solucionesmvseir[[6]][,4])
+
+x0seir[[7]] <- c(solucionesmvseir[[6]][length(intervalos[[6]]), 2], 
+                 solucionesmvseir[[6]][length(intervalos[[6]]), 3],
+                 bd_estimacion[tail(intervalos[[6]], 1),2], 
+                 solucionesmvseir[[6]][length(intervalos[[6]]), 5])
+
+verosimilitudseir[[7]] <- function(lbeta, lupsilon, lgamma) {
+  parms <- c(beta= lbeta, 
+             upsilon = lupsilon,
+             gamma = lgamma)
+  out <- ode(y=x0seir[[7]], intervalos[[7]], 
+             seir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[7]], 2]-out[,4])^2)/
+               length(intervalos[[7]])) 
+  - sum(dnorm(bd_estimacion[intervalos[[7]], 2], mean=out[,4], 
+              sd=SD, log=TRUE))
+}
+ajuste_maxseir[[7]] <- mle2(verosimilitudseir[[7]], 
+                            start=list(lbeta= 0.0000001,
+                                       lupsilon = 0.00025,#46
+                                       lgamma= 0.00000005), 
+                            method="BFGS",
+                            control=list(maxit=1E5,trace=0),
+                            trace=FALSE)
+parametermcseir[[7]] <- c(ajuste_maxseir[[7]]@coef)
+solucionesmvseir[[7]] <- ode(y=x0seir[[7]], intervalos[[7]], 
+                             seir_IRA, parametermcseir[[7]])
+
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[7]],1], 
+     ylim = c(min(c(min(sua_datos_mod_SIRSEIR_df[intervalos[[7]],1]), 
+                    min(solucionesmvseir[[7]][,4]))), 
+              max(c(max(sua_datos_mod_SIRSEIR_df[intervalos[[7]],1]), 
+                    max(solucionesmvseir[[7]][,4])))))
+lines(solucionesmvseir[[7]][,4])
+
+x0seir[[8]] <- c(solucionesmvseir[[7]][length(intervalos[[7]]), 2], 
+                 solucionesmvseir[[7]][length(intervalos[[7]]), 3],
+                 bd_estimacion[tail(intervalos[[7]], 1),2], 
+                 solucionesmvseir[[7]][length(intervalos[[7]]), 5])
+
+verosimilitudseir[[8]] <- function(lbeta, lupsilon, lgamma) {
+  parms <- c(beta= lbeta, 
+             upsilon = lupsilon,
+             gamma = lgamma)
+  out <- ode(y=x0seir[[8]], intervalos[[8]], 
+             seir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[8]], 2]-out[,4])^2)/
+               length(intervalos[[8]])) 
+  - sum(dnorm(bd_estimacion[intervalos[[8]], 2], mean=out[,4], 
+              sd=SD, log=TRUE))
+}
+ajuste_maxseir[[8]] <- mle2(verosimilitudseir[[8]], 
+                            start=list(lbeta= 0.0000001,
+                                       lupsilon = 0.000008,#46
+                                       lgamma= 0.00000005), 
+                            method="BFGS",
+                            control=list(maxit=1E5,trace=0),
+                            trace=FALSE)
+parametermcseir[[8]] <- c(ajuste_maxseir[[8]]@coef)
+solucionesmvseir[[8]] <- ode(y=x0seir[[8]], intervalos[[8]], 
+                             seir_IRA, parametermcseir[[8]])
+
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[8]],1], 
+     ylim = c(min(c(min(sua_datos_mod_SIRSEIR_df[intervalos[[8]],1]), 
+                    min(solucionesmvseir[[8]][,4]))), 
+              max(c(max(sua_datos_mod_SIRSEIR_df[intervalos[[8]],1]), 
+                    max(solucionesmvseir[[8]][,4])))))
+lines(solucionesmvseir[[8]][,4])
+
+x0seir[[9]] <- c(solucionesmvseir[[8]][length(intervalos[[8]]), 2], 
+                 solucionesmvseir[[8]][length(intervalos[[8]]), 3],
+                 bd_estimacion[tail(intervalos[[8]], 1),2], 
+                 solucionesmvseir[[8]][length(intervalos[[8]]), 5])
+
+verosimilitudseir[[9]] <- function(lbeta, lupsilon, lgamma) {
+  parms <- c(beta= lbeta, 
+             upsilon = lupsilon,
+             gamma = lgamma)
+  out <- ode(y=x0seir[[9]], intervalos[[9]], 
+             seir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[9]], 2]-out[,4])^2)/
+               length(intervalos[[9]])) 
+  - sum(dnorm(bd_estimacion[intervalos[[9]], 2], mean=out[,4], 
+              sd=SD, log=TRUE))
+}
+ajuste_maxseir[[9]] <- mle2(verosimilitudseir[[9]], 
+                            start=list(lbeta= 0.0000001,
+                                       lupsilon = 0.0006,#46
+                                       lgamma= 0.00000005), 
+                            method="BFGS",
+                            control=list(maxit=1E5,trace=0),
+                            trace=FALSE)
+parametermcseir[[9]] <- c(ajuste_maxseir[[9]]@coef)
+solucionesmvseir[[9]] <- ode(y=x0seir[[9]], intervalos[[9]], 
+                             seir_IRA, parametermcseir[[9]])
+
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[9]],1], 
+     ylim = c(min(c(min(sua_datos_mod_SIRSEIR_df[intervalos[[9]],1]), 
+                    min(solucionesmvseir[[9]][,4]))), 
+              max(c(max(sua_datos_mod_SIRSEIR_df[intervalos[[9]],1]), 
+                    max(solucionesmvseir[[9]][,4])))))
+lines(solucionesmvseir[[9]][,4])
+
+x0seir[[10]] <- c(solucionesmvseir[[9]][length(intervalos[[9]]), 2], 
+                 solucionesmvseir[[9]][length(intervalos[[9]]), 3],
+                 bd_estimacion[tail(intervalos[[9]], 1),2], 
+                 solucionesmvseir[[9]][length(intervalos[[9]]), 5])
+
+verosimilitudseir[[10]] <- function(lbeta, lupsilon, lgamma) {
+  parms <- c(beta= lbeta, 
+             upsilon = lupsilon,
+             gamma = lgamma)
+  out <- ode(y=x0seir[[10]], intervalos[[10]], 
+             seir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[10]], 2]-out[,4])^2)/
+               length(intervalos[[10]])) 
+  - sum(dnorm(bd_estimacion[intervalos[[10]], 2], mean=out[,4], 
+              sd=SD, log=TRUE))
+}
+ajuste_maxseir[[10]] <- mle2(verosimilitudseir[[10]], 
+                            start=list(lbeta= 0.0000001,
+                                       lupsilon = 0.0005,#46
+                                       lgamma= 0.00000005), 
+                            method="BFGS",
+                            control=list(maxit=1E5,trace=0),
+                            trace=FALSE)
+parametermcseir[[10]] <- c(ajuste_maxseir[[10]]@coef)
+solucionesmvseir[[10]] <- ode(y=x0seir[[10]], intervalos[[10]], 
+                             seir_IRA, parametermcseir[[10]])
+
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[10]],1], 
+     ylim = c(min(c(min(sua_datos_mod_SIRSEIR_df[intervalos[[10]],1]), 
+                    min(solucionesmvseir[[10]][,4]))), 
+              max(c(max(sua_datos_mod_SIRSEIR_df[intervalos[[10]],1]), 
+                    max(solucionesmvseir[[10]][,4])))))
+lines(solucionesmvseir[[10]][,4])
+
+x0seir[[11]] <- c(solucionesmvseir[[10]][length(intervalos[[10]]), 2], 
+                  solucionesmvseir[[10]][length(intervalos[[10]]), 3],
+                  bd_estimacion[tail(intervalos[[10]], 1),2], 
+                  solucionesmvseir[[10]][length(intervalos[[10]]), 5])
+
+verosimilitudseir[[11]] <- function(lbeta, lupsilon, lgamma) {
+  parms <- c(beta= lbeta, 
+             upsilon = lupsilon,
+             gamma = lgamma)
+  out <- ode(y=x0seir[[11]], intervalos[[11]], 
+             seir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[11]], 2]-out[,4])^2)/
+               length(intervalos[[11]])) 
+  - sum(dnorm(bd_estimacion[intervalos[[11]], 2], mean=out[,4], 
+              sd=SD, log=TRUE))
+}
+ajuste_maxseir[[11]] <- mle2(verosimilitudseir[[11]], 
+                             start=list(lbeta= 0.0000001,
+                                        lupsilon = 0.0005,#46
+                                        lgamma= 0.00000005), 
+                             method="BFGS",
+                             control=list(maxit=1E5,trace=0),
+                             trace=FALSE)
+parametermcseir[[11]] <- c(ajuste_maxseir[[11]]@coef)
+solucionesmvseir[[11]] <- ode(y=x0seir[[11]], intervalos[[11]], 
+                              seir_IRA, parametermcseir[[11]])
+
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[11]],1], 
+     ylim = c(min(c(min(sua_datos_mod_SIRSEIR_df[intervalos[[11]],1]), 
+                    min(solucionesmvseir[[11]][,4]))), 
+              max(c(max(sua_datos_mod_SIRSEIR_df[intervalos[[11]],1]), 
+                    max(solucionesmvseir[[11]][,4])))))
+lines(solucionesmvseir[[11]][,4])
+
+x0seir[[12]] <- c(solucionesmvseir[[11]][length(intervalos[[11]]), 2], 
+                  solucionesmvseir[[11]][length(intervalos[[11]]), 3],
+                  bd_estimacion[tail(intervalos[[11]], 1),2], 
+                  solucionesmvseir[[11]][length(intervalos[[11]]), 5])
+
+verosimilitudseir[[12]] <- function(lbeta, lupsilon, lgamma) {
+  parms <- c(beta= lbeta, 
+             upsilon = lupsilon,
+             gamma = lgamma)
+  out <- ode(y=x0seir[[12]], intervalos[[12]], 
+             seir_IRA, parms)
+  SD <- sqrt(sum((bd_estimacion[intervalos[[12]], 2]-out[,4])^2)/
+               length(intervalos[[12]])) 
+  - sum(dnorm(bd_estimacion[intervalos[[12]], 2], mean=out[,4], 
+              sd=SD, log=TRUE))
+}
+ajuste_maxseir[[12]] <- mle2(verosimilitudseir[[12]], 
+                             start=list(lbeta= 0.0000001,
+                                        lupsilon = 0.00053,#46
+                                        lgamma= 0.00000005), 
+                             method="BFGS",
+                             control=list(maxit=1E5,trace=0),
+                             trace=FALSE)
+parametermcseir[[12]] <- c(ajuste_maxseir[[12]]@coef)
+solucionesmvseir[[12]] <- ode(y=x0seir[[12]], intervalos[[12]], 
+                              seir_IRA, parametermcseir[[12]])
+
+plot(sua_datos_mod_SIRSEIR_df[intervalos[[12]],1], 
+     ylim = c(min(c(min(sua_datos_mod_SIRSEIR_df[intervalos[[12]],1]), 
+                    min(solucionesmvseir[[12]][,4]))), 
+              max(c(max(sua_datos_mod_SIRSEIR_df[intervalos[[12]],1]), 
+                    max(solucionesmvseir[[12]][,4])))))
+lines(solucionesmvseir[[12]][,4])
+
+plot(c(intervalos[[1]], intervalos[[2]], intervalos[[3]], 
+       intervalos[[4]], intervalos[[5]], intervalos[[6]], 
+       intervalos[[7]], intervalos[[8]], intervalos[[9]], 
+       intervalos[[10]], intervalos[[11]], intervalos[[12]]), 
+     c(solucionesmvseir[[1]][,2], solucionesmvseir[[2]][,2], 
+       solucionesmvseir[[3]][,2], solucionesmvseir[[4]][,2], 
+       solucionesmvseir[[5]][,2], solucionesmvseir[[6]][,2], 
+       solucionesmvseir[[7]][,2], solucionesmvseir[[8]][,2], 
+       solucionesmvseir[[9]][,2], solucionesmvseir[[10]][,2], 
+       solucionesmvseir[[11]][,2], solucionesmvseir[[12]][,2]))
+
+R0IRASEIR = NULL
+for (i in 1:12){
+  R0IRASEIR[i] = Lambda*parametermcseir[[i]][2]*parametermcseir[[i]][1]/
+    (mu*(mu + parametermcseir[[i]][2])*(mu + parametermcseir[[i]][3]))
+}
+R0IRASEIR
+
+# cortes = list() for (i in 1:39) {cortes[[i]] = intervalos[[i]][1]}
+# cortes = unlist(cortes)
+
+sol_datosseir = list()
+for (i in 1:12) {sol_datosseir[[i]] = sua_datos_mod_SIRSEIR_df[intervalos[[i]],1]}
+sol_infecseir = list()
+for (i in 1:12) {sol_infecseir[[i]] = solucionesmv[[i]][,3]}
+datos_infseir = list()
+for (i in 1:12) {datos_infseir[[i]] = IRA_bog_fin_datos[intervalos[[i]], 3]}
+
+inrseir = NULL 
+inrseir = unlist(sol_datosseir)
+insseir = NULL 
+insseir = unlist(sol_infecseir)
+datos_inf_vseir = NULL
+datos_inf_vseir = unlist(datos_infseir)
+
+fechasseir = list()
+for (k in 1:12) {
+  fechasseir[[k]] = as.character((as.Date(dias_antes) + 3)[intervalos[[k]]])
+}
+
+datos_pobseir = data.frame(as.Date(unlist(fechasseir)), 
+                           inrseir, insseir, datos_inf_vseir)
+
+color_poblac_1 <- c("Datos\n infectados" = "orchid1", "Datos de infectados\n suavizado" = "red4", 
+                    "Solución de infectados\n estimado" = "firebrick1")
+library(ggplot2)
+grafica_pobseir <- ggplot(data = datos_pobseir) + 
+  geom_point(aes(x = datos_pobseir[, 1], y = datos_pobseir[, 4], color = "Datos\n infectados"), 
+             size = 1.5) +
+  geom_line(aes(x = datos_pobseir[, 1], y = datos_pobseir[, 2], color = "Datos de infectados\n suavizado"), 
+            linewidth = 1) +
+  geom_line(aes(x = datos_pobseir[, 1], y = datos_pobseir[, 3], color = "Solución de infectados\n estimado"), 
+            linewidth = 1, linetype = "dashed") +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de casos')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  theme(legend.position="bottom") + 
+  scale_color_manual(values = color_poblac_1, name = "", 
+                     guide = guide_legend(ncol = 3, override.aes = 
+                                            list(linetype = c('solid', "blank",
+                                                              "dashed"), 
+                                                 shape = c(NA, 16, NA))))
+grafica_pobseir
+
+sol_suscepseir = list()
+for (i in 1:12) {sol_suscepseir[[i]] = solucionesmvseir[[i]][,2]}
+vector_susseir = unlist(sol_suscepseir)
+sol_recupeseir = list()
+for (i in 1:12) {sol_recupeseir[[i]] = solucionesmvseir[[i]][,5]}
+vector_recseir = unlist(sol_recupeseir)
+sol_expuesseir = list()
+for (i in 1:12) {sol_expuesseir[[i]] = solucionesmvseir[[i]][,3]}
+vector_expseir = unlist(sol_expuesseir)
+
+datos_sus_rep_exp = data.frame(as.Date(unlist(fechasseir)), 
+                               vector_susseir, vector_expseir,  
+                               vector_recseir)
+library(ggplot2)
+grafica_seir_sus <- ggplot(data = datos_sus_rep_exp) + 
+  geom_line(aes(x = datos_sus_rep_exp[, 1], y = datos_sus_rep_exp[, 2]), color = "cornflowerblue",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de susceptibles')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+grafica_seir_sus
+
+grafica_seir_rec <- ggplot(data = datos_sus_rep_exp) + 
+  geom_line(aes(x = datos_sus_rep_exp[, 1], y = datos_sus_rep_exp[,4]), color = "seagreen4",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de recuperados')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+grafica_seir_rec
+
+grafica_seir_exp <- ggplot(data = datos_sus_rep_exp) + 
+  geom_line(aes(x = datos_sus_rep_exp[, 1], y = datos_sus_rep_exp[,3]), color = "darkgoldenrod1",
+            linewidth = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes], 
+             color = "deepskyblue3", linewidth = 0.5) + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de expuestos')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+grafica_seir_exp
+which(datos_sus_rep_exp[,3] == max(datos_sus_rep_exp[,3]))
