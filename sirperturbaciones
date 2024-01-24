@@ -1,0 +1,702 @@
+## PARA EL MODELO SIR
+datos_recuperados = datos_sus_rep_acti[,3]
+datos_susceptibles = datos_sus_rep_acti[,2]
+datos_infectados = sua_datos_mod_SIRSEIR_df[, 1]
+
+media_s = NULL
+media_i = NULL
+media_r = NULL
+media_s[1] = datos_susceptibles[1] # Dato tiempo 0
+media_i[1] = datos_infectados[1] # Dato tiempo 0
+media_r[1] = datos_recuperados[1] # Dato tiempo 0
+for (i in 2:650) {
+  media_s[i] = datos_susceptibles[(i-1)] + actu_lambda[i] -
+    actu_betas[(i-1)]*datos_infectados[(i-1)] -
+    actu_mu[i]*datos_susceptibles[(i-1)]
+  media_i[i] = datos_infectados[(i-1)] +
+    actu_betas[(i-1)]*datos_infectados[(i-1)] -
+    (1/5.2)*datos_infectados[(i-1)] -
+    actu_mu[i]*datos_infectados[(i-1)]
+  media_r[i] = datos_recuperados[(i-1)] +
+    (1/5.2)*datos_infectados[(i-1)] -
+    actu_mu[i]*datos_recuperados[(i-1)]
+}
+plot(media_i, col = "blue", lwd = 2, type = "l")
+lines(datos_infectados, col = "red", lwd = 2, type = "l")
+
+plot(media_r, col = "blue", lwd = 2, type = "l")
+lines(datos_recuperados, col = "red", lwd = 2, type = "l")
+
+plot(media_s, col = "blue", lwd = 2, type = "l")
+lines(datos_susceptibles, col = "red", lwd = 2, type = "l")
+
+# sigma_12 = (1/(2*649))*(sum((media_s[1:649] - datos_susceptibles[1:649])^2/
+#                               (datos_susceptibles[1:649]^2*datos_infectados[1:649]^2)) + sum((media_i[1:649] - datos_infectados[1:649])^2/(datos_susceptibles[1:649]^2*datos_infectados[1:649]^2)))
+# sqrt(sigma_12) # sigma1
+
+# sigma_22 = (1/(2*649))*(sum((media_i[1:649] - datos_infectados[1:649])^2/
+#                               (datos_infectados[1:649]^2)) + sum((media_r[1:649] - datos_recuperados[1:649])^2/(datos_infectados[1:649]^2)))
+# sqrt(sigma_22) # sigma2
+
+sigma_1f = (1/649)*((2/3)*sum((media_s[1:649] - datos_susceptibles[1:649])^2/
+                              (datos_susceptibles[1:649]^2*datos_infectados[1:649]^2)) + 
+                              (1/3)*sum((media_i[1:649] - datos_infectados[1:649])^2/
+                              (datos_susceptibles[1:649]^2*datos_infectados[1:649]^2)) - 
+                              (1/3)*sum((media_r[1:649] - datos_recuperados[1:649])^2/
+                              (datos_susceptibles[1:649]^2*datos_infectados[1:649]^2)))
+sqrt(abs(sigma_1f))
+sigma_2f = (1/(649))*(sum((-1/3)*(media_s[1:649] - datos_susceptibles[1:649])^2/
+                              (datos_infectados[1:649]^2) + 
+                              (1/3)*(media_i[1:649] - datos_infectados[1:649])^2/
+                              (datos_infectados[1:649]^2) + 
+                              (2/3)*(media_r[1:649] - datos_recuperados[1:649])^2/
+                              (datos_infectados[1:649]^2)))
+sqrt(sigma_2f)
+
+rho12 = 2*(1/649)*sum((((media_s[1:649] - datos_susceptibles[1:649])^2 +
+                          (media_i[1:649] - datos_infectados[1:649])^2)/
+                         (abs(sigma_1f)*datos_susceptibles[1:649]^2*datos_infectados[1:649]^2*
+                            ((media_s[1:649] - datos_susceptibles[1:649])^2 +
+                               (media_i[1:649] - datos_infectados[1:649])^2 +
+                               (media_r[1:649] - datos_recuperados[1:649])^2)))[2:649])
+sqrt(rho12) # rho1
+
+rho32 = 2*(1/649)*sum((((media_r[1:649] - datos_recuperados[1:649])^2 +
+                          (media_i[1:649] - datos_infectados[1:649])^2)/
+                         (sigma_2f*datos_infectados[1:649]^2*
+                            ((media_s[1:649] - datos_susceptibles[1:649])^2 +
+                               (media_i[1:649] - datos_infectados[1:649])^2 +
+                               (media_r[1:649] - datos_recuperados[1:649])^2)))[2:649])
+sqrt(rho32) # rho3
+
+rho22 = (1/649)*sum(abs(((media_s[1:649] - datos_susceptibles[1:649])*(media_r[1:649] - datos_recuperados[1:649])))/
+                      (sqrt(sigma_2f)*sqrt(abs(sigma_1f))*datos_susceptibles[1:649]*datos_infectados[1:649]^2))
+sqrt(rho22) # rho2
+
+media_sb = NULL
+media_ib = NULL
+media_rb = NULL
+media_sb[1] = datos_susceptibles[1] # Dato tiempo 0
+media_ib[1] = datos_infectados[1] # Dato tiempo 0
+media_rb[1] = datos_recuperados[1] # Dato tiempo 0
+for (k in 2:650) {
+  media_sb[k] = datos_susceptibles[(k-1)] + actu_lambda[k] -
+    actu_betas[(k-1)]*datos_infectados[(k-1)] -
+    actu_mu[k]*datos_susceptibles[(k-1)]
+  - sqrt(abs(sigma_1f))*datos_infectados[(k-1)]*
+    datos_susceptibles[(k-1)]*rnorm(1, mean = 0, sd = 1)
+  media_ib[k] = datos_infectados[(k-1)] +
+    actu_betas[(k-1)]*datos_infectados[(k-1)] -
+    (1/5.2)*datos_infectados[(k-1)] -
+    actu_mu[k]*datos_infectados[(k-1)] + sqrt(abs(sigma_1f))*
+    datos_infectados[(k-1)]*datos_susceptibles[(k-1)]*
+    rnorm(1, mean = 0, sd = 1) -
+    sqrt(sigma_2f)*datos_infectados[(k-1)]*rnorm(1, mean = 0, sd = 1)
+  media_rb[k] = datos_recuperados[(k-1)] +
+    (1/5.2)*datos_infectados[(k-1)] -
+    actu_mu[k]*datos_recuperados[(k-1)] +
+    sqrt(sigma_2f)*datos_infectados[(k-1)]*rnorm(1, mean = 0, sd = 1)
+}
+
+plot(media_i, col = "blue", lwd = 2, type = "l")
+lines(media_ib, col = "red", lwd = 2, type = "l")
+
+plot(media_r[600:649], col = "blue", lwd = 2, type = "l")
+lines(media_rb[600:649], col = "red", lwd = 2, type = "l")
+
+plot(media_s[640:649], col = "blue", lwd = 2, type = "l")
+lines(media_sb[640:649], col = "red", lwd = 2, type = "l")
+
+IRA_bog_fin_esto <- data.frame((as.Date(dias_antes) + 3)[1:650],
+                               datos_mod_SIRSEIR[1:650],
+                               sua_datos_mod_SIRSEIR_df[1:650,1],
+                               media_ib)
+colores_estocasticos = c("Datos" = "firebrick1", 
+                         "Datos\n suavizados" = "red4", 
+                         "Estimación\n estocástica" = "lightpink1")
+library(ggplot2)
+grafica_IRA_datos_esto <- ggplot(data = IRA_bog_fin_esto) +
+  geom_line(aes(x = IRA_bog_fin_esto[, 1], y = IRA_bog_fin_esto[, 4], 
+                color = "Estimación\n estocástica"), linewidth = 0.8) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes],
+             color = "skyblue1", linewidth = 0.5) +
+  geom_line(aes(x = IRA_bog_fin_esto[, 1], y = IRA_bog_fin_esto[, 3], 
+                color = "Datos\n suavizados"), linewidth = 1) +
+  geom_point(aes(x = IRA_bog_fin_esto[, 1], y = IRA_bog_fin_esto[, 2], 
+                 color = "Datos"), size = 1) +
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de infectados')  +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  scale_color_manual(values = colores_estocasticos, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('blank', "solid",
+                                                              "solid"), 
+                                                 shape = c(16, NA, NA)))) + 
+  theme(legend.position = "bottom")
+grafica_IRA_datos_esto
+
+media_sbesto = vector(mode = 'list', length = 500)
+media_ibesto = vector(mode = 'list', length = 500)
+media_rbesto = vector(mode = 'list', length = 500)
+for (k in 1:500) {
+  media_sbesto[[k]][1] = datos_susceptibles[1] # Dato tiempo 0
+  media_ibesto[[k]][1] = datos_infectados[1] # Dato tiempo 0
+  media_rbesto[[k]][1] = datos_recuperados[1] # Dato tiempo 0
+}
+for (k in 1:500) {
+  for (i in 2:649) {
+    media_sbesto[[k]][i] = datos_susceptibles[(i-1)] + actu_lambda[i] -
+      actu_betas[(i-1)]*datos_infectados[(i-1)] -
+      actu_mu[i]*datos_susceptibles[(i-1)] - 
+      sqrt(abs(sigma_1f))*datos_infectados[(i-1)]*
+      datos_susceptibles[(i-1)]*rnorm(1, mean = 0, sd = 1)
+    media_ibesto[[k]][i] = datos_infectados[(i-1)] +
+      actu_betas[(i-1)]*datos_infectados[(i-1)] -
+      (1/5.2)*datos_infectados[(i-1)] -
+      actu_mu[i]*datos_infectados[(i-1)] + sqrt(abs(sigma_1f))*
+      datos_infectados[(i-1)]*datos_susceptibles[(i-1)]*
+      rnorm(1, mean = 0, sd = 1) -
+      sqrt(sigma_2f)*datos_infectados[(i-1)]*rnorm(1, mean = 0, sd = 1)
+    media_rbesto[[k]][i] = datos_recuperados[(i-1)] +
+      (1/5.2)*datos_infectados[(i-1)] -
+      actu_mu[i]*datos_recuperados[(i-1)] +
+      sqrt(sigma_2f)*datos_infectados[(i-1)]*rnorm(1, mean = 0, sd = 1)
+  } 
+}
+
+plot(media_ibesto[[1]], type = "l", col = "gray", ylim = c(min(unlist(media_ibesto)), 
+                                                           max(unlist(media_ibesto))))
+for (k in 2:10000) {
+  lines(media_ibesto[[k]], type = "l", col = "gray")
+}
+lines(datos_infectados, lwd = 2, col = "blue")
+points(datos_mod_SIRSEIR[1:649], pch = 20)
+
+suma_cuadrados_1 = NULL
+for (j in 1:10000) {
+  suma_cuadrados_1[j] = (sum(media_ibesto[[j]][1:649] - na_interpolation(datos_mod_SIRSEIR[1:649]))^2)/649
+}
+mean(suma_cuadrados_1)
+
+suma_cuadrados_3 = NULL
+for (j in 1:10000) {
+  suma_cuadrados_3[j] = (sum(sua_poblacion[1:649,3] - 
+                               (na_interpolation(datos_mod_SIRSEIR[1:649]) + 
+                                  media_rbesto[[j]][1:649] + 
+                                  media_sbesto[[j]][1:649]))^2)/649
+}
+mean(suma_cuadrados_3)
+
+suma_cuadrados2 = sum((na_interpolation(IRA_bog_fin_est1[1:649, 2]) - ins[1:649])^2)/649
+
+IRA_bog_fin_esto_sus <- data.frame((as.Date(dias_antes) + 3)[1:650],
+                               datos_susceptibles[1:650],
+                               media_sb[1:650])
+colores_estocasticos_sus = c("Datos\n estimados" = "cornflowerblue", 
+                             "Estimación\n estocástica" = "skyblue")
+library(ggplot2)
+grafica_IRA_datos_esto_sus <- ggplot(data = IRA_bog_fin_esto_sus) +
+  geom_point(aes(x = IRA_bog_fin_esto_sus[, 1], y = IRA_bog_fin_esto_sus[, 2], 
+                 color = "Datos\n estimados"), size = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes],
+             color = "skyblue1", linewidth = 0.5) +
+  geom_line(aes(x = IRA_bog_fin_esto_sus[, 1], y = IRA_bog_fin_esto_sus[, 3], 
+                color = "Estimación\n estocástica"), linewidth = 0.8) +
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de susceptibles')  +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  scale_color_manual(values = colores_estocasticos_sus, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('blank', "solid"), 
+                                                 shape = c(16, NA)))) + 
+  theme(legend.position = "bottom")
+grafica_IRA_datos_esto_sus
+
+IRA_bog_fin_esto_rec <- data.frame((as.Date(dias_antes) + 3)[1:650],
+                                   datos_recuperados[1:650],
+                                   media_rb[1:650])
+colores_estocasticos_rec = c("Datos\n estimados" = "cornflowerblue", 
+                             "Estimación\n estocástica" = "skyblue")
+library(ggplot2)
+grafica_IRA_datos_esto_rec <- ggplot(data = IRA_bog_fin_esto_rec) +
+  geom_point(aes(x = IRA_bog_fin_esto_rec[, 1], y = IRA_bog_fin_esto_rec[, 2], 
+                 color = "Datos\n estimados"), size = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes],
+             color = "skyblue1", linewidth = 0.5) +
+  geom_line(aes(x = IRA_bog_fin_esto_rec[, 1], y = IRA_bog_fin_esto_rec[, 3], 
+                color = "Estimación\n estocástica"), linewidth = 0.8) +
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de casos')  +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  scale_color_manual(values = colores_estocasticos_rec, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('blank', "solid"), 
+                                                 shape = c(16, NA)))) + 
+  theme(legend.position = "bottom")
+grafica_IRA_datos_esto_rec
+
+IRA_bog_fin_esto_sus1 <- data.frame((as.Date(dias_antes) + 3)[600:649],
+                                   datos_susceptibles[600:649],
+                                   media_sb[600:649])
+colores_estocasticos_sus1 = c("Datos\n estimados" = "cornflowerblue", 
+                             "Estimación\n estocástica" = "skyblue")
+library(ggplot2)
+grafica_IRA_datos_esto_sus1 <- ggplot(data = IRA_bog_fin_esto_sus1) +
+  geom_point(aes(x = IRA_bog_fin_esto_sus1[, 1], y = IRA_bog_fin_esto_sus1[, 2], 
+                 color = "Datos\n estimados"), size = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes],
+             color = "skyblue1", linewidth = 0.5) +
+  geom_line(aes(x = IRA_bog_fin_esto_sus1[, 1], y = IRA_bog_fin_esto_sus1[, 3], 
+                color = "Estimación\n estocástica"), linewidth = 0.8) +
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de casos')  +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  scale_color_manual(values = colores_estocasticos_sus1, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('blank', "solid"), 
+                                                 shape = c(16, NA)))) + 
+  theme(legend.position = "bottom")
+grafica_IRA_datos_esto_sus1
+
+IRA_bog_fin_esto_rec1 <- data.frame((as.Date(dias_antes) + 3)[600:649],
+                                   datos_recuperados[600:649],
+                                   media_rb[600:649])
+colores_estocasticos_rec1 = c("Datos\n estimados" = "cornflowerblue", 
+                             "Estimación\n estocástica" = "skyblue")
+library(ggplot2)
+grafica_IRA_datos_esto_rec1 <- ggplot(data = IRA_bog_fin_esto_rec1) +
+  geom_point(aes(x = IRA_bog_fin_esto_rec1[, 1], y = IRA_bog_fin_esto_rec1[, 2], 
+                 color = "Datos\n estimados"), size = 1) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes],
+             color = "skyblue1", linewidth = 0.5) +
+  geom_line(aes(x = IRA_bog_fin_esto_rec1[, 1], y = IRA_bog_fin_esto_rec1[, 3], 
+                color = "Estimación\n estocástica"), linewidth = 0.8) +
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de casos')  +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  scale_color_manual(values = colores_estocasticos_rec1, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('blank', "solid"), 
+                                                 shape = c(16, NA)))) + 
+  theme(legend.position = "bottom")
+grafica_IRA_datos_esto_rec1
+
+library(imputeTS)
+datos_infectados1 = na.interpolation(IRA_bog_fin_datos[, 3],
+                                     option = "spline")
+media_s1 = NULL
+media_i1 = NULL
+media_r1 = NULL
+media_s1[1] = datos_susceptibles[1] # Dato tiempo 0
+media_i1[1] = datos_infectados1[1] # Dato tiempo 0
+media_r1[1] = datos_recuperados[1] # Dato tiempo 0
+for (i in 2:650) {
+  media_s1[i] = datos_susceptibles[(i-1)] + actu_lambda[i] -
+    actu_betas[(i-1)]*datos_infectados1[(i-1)] -
+    actu_mu[i]*datos_susceptibles[(i-1)]
+  media_i1[i] = datos_infectados1[(i-1)] +
+    actu_betas[(i-1)]*datos_infectados1[(i-1)] -
+    (1/5.2)*datos_infectados1[(i-1)] -
+    actu_mu[i]*datos_infectados1[(i-1)]
+  media_r1[i] = datos_recuperados[(i-1)] +
+    (1/5.2)*datos_infectados1[(i-1)] -
+    actu_mu[i]*datos_recuperados[(i-1)]
+}
+plot(media_i1, col = "blue", lwd = 2, type = "l")
+lines(datos_infectados, col = "red", lwd = 2, type = "l")
+
+plot(media_r1, col = "blue", lwd = 2, type = "l")
+lines(datos_recuperados, col = "red", lwd = 2, type = "l")
+
+plot(media_s1, col = "blue", lwd = 2, type = "l")
+lines(datos_susceptibles, col = "red", lwd = 2, type = "l")
+
+# sigma_12es = (1/(2*649))*(sum((media_s1[1:649] - datos_susceptibles[1:649])^2/
+#                                 (datos_susceptibles[1:649]^2*datos_infectados1[1:649]^2)) + sum((media_i1[1:649] - datos_infectados1[1:649])^2/(datos_susceptibles[1:649]^2*datos_infectados1[1:649]^2)))
+# sqrt(sigma_12es) # sigma1
+
+# sigma_22es = (1/(2*649))*(sum((media_i1[1:649] - datos_infectados1[1:649])^2/
+#                                 (datos_infectados1[1:649]^2)) + sum((media_r1[1:649] - datos_recuperados[1:649])^2/(datos_infectados1[1:649]^2)))
+# sqrt(sigma_22es) # sigma2
+
+sigma_1ff = (1/649)*((2/3)*sum((media_s[1:649] - datos_susceptibles[1:649])^2/
+                                (datos_susceptibles[1:649]^2*datos_infectados1[1:649]^2)) + 
+                      (1/3)*sum((media_i[1:649] - datos_infectados1[1:649])^2/
+                                  (datos_susceptibles[1:649]^2*datos_infectados1[1:649]^2)) - 
+                      (1/3)*sum((media_r[1:649] - datos_recuperados[1:649])^2/
+                                  (datos_susceptibles[1:649]^2*datos_infectados1[1:649]^2)))
+sqrt(sigma_1ff)
+sigma_2ff = (1/(649))*(sum((-1/3)*(media_s[1:649] - datos_susceptibles[1:649])^2/
+                            (datos_infectados1[1:649]^2) + 
+                            (1/3)*(media_i[1:649] - datos_infectados1[1:649])^2/
+                            (datos_infectados1[1:649]^2) + 
+                            (2/3)*(media_r[1:649] - datos_recuperados[1:649])^2/
+                            (datos_infectados1[1:649]^2)))
+sqrt(sigma_2ff)
+
+rho1e = 2*(1/649)*sum((((media_s1[1:649] - datos_susceptibles[1:649])^2 +
+                          (media_i1[1:649] - datos_infectados1[1:649])^2)/
+                         (sigma_1ff*datos_susceptibles[1:649]^2*datos_infectados1[1:649]^2*
+                            ((media_s1[1:649] - datos_susceptibles[1:649])^2 +
+                               (media_i1[1:649] - datos_infectados1[1:649])^2 +
+                               (media_r1[1:649] - datos_recuperados[1:649])^2)))[2:649])
+sqrt(rho1e) # rho1
+
+rho3e = 2*(1/649)*sum((((media_r1[1:649] - datos_recuperados[1:649])^2 +
+                          (media_i1[1:649] - datos_infectados1[1:649])^2)/
+                         (sigma_2ff*datos_infectados1[1:649]^2*
+                            ((media_s1[1:649] - datos_susceptibles[1:649])^2 +
+                               (media_i1[1:649] - datos_infectados1[1:649])^2 +
+                               (media_r1[1:649] - datos_recuperados[1:649])^2)))[2:649])
+sqrt(rho3e) # rho3
+
+rho2e = (1/649)*sum(abs(((media_s1[1:649] - datos_susceptibles[1:649])*(media_r1[1:649] - datos_recuperados[1:649])))/
+                      (sqrt(sigma_2ff)*sqrt(sigma_1ff)*datos_susceptibles[1:649]*datos_infectados1[1:649]^2))
+sqrt(rho2e) # rho2
+
+media_sbes = NULL
+media_ibes = NULL
+media_rbes = NULL
+media_sbes = datos_susceptibles[1] # Dato tiempo 0
+media_ibes = datos_infectados[1] # Dato tiempo 0
+media_rbes = datos_recuperados[1] # Dato tiempo 0
+for (k in 2:650) {
+  media_sbes[k] = datos_susceptibles[(k-1)] + actu_lambda[k] -
+    actu_betas[(k-1)]*datos_infectados1[(k-1)] -
+    actu_mu[k]*datos_susceptibles[(k-1)]
+  - sqrt(sigma_1ff)*datos_infectados1[(k-1)]*
+    datos_susceptibles[(k-1)]*rnorm(1, mean = 0, sd = 1)
+  media_ibes[k] = datos_infectados1[(k-1)] +
+    actu_betas[(k-1)]*datos_infectados1[(k-1)] -
+    (1/5.2)*datos_infectados1[(k-1)] -
+    actu_mu[k]*datos_infectados1[(k-1)] + sqrt(sigma_1ff)*
+    datos_infectados[(k-1)]*datos_susceptibles[(k-1)]*
+    rnorm(1, mean = 0, sd = 1) -
+    sqrt(sigma_2ff)*datos_infectados[(k-1)]*rnorm(1, mean = 0, sd = 1)
+  media_rbes[k] = datos_recuperados[(k-1)] +
+    (1/5.2)*datos_infectados1[(k-1)] -
+    actu_mu[k]*datos_recuperados[(k-1)] +
+    sqrt(sigma_2ff)*datos_infectados1[(k-1)]*rnorm(1, mean = 0, sd = 1)
+}
+
+plot(media_i, col = "blue", lwd = 2, type = "l")
+lines(media_ibes, col = "red", lwd = 2, type = "l")
+
+plot(media_r, col = "blue", lwd = 2, type = "l")
+lines(media_rbes, col = "red", lwd = 2, type = "l")
+
+plot(media_s, col = "blue", lwd = 2, type = "l")
+lines(media_sbes, col = "red", lwd = 2, type = "l")
+
+IRA_bog_fin_estsss <- data.frame((as.Date(dias_antes) + 3)[1:650],
+                                 datos_mod_SIRSEIR[1:650],
+                                 sua_datos_mod_SIRSEIR_df[1:650,1],
+                                 media_ibes)
+
+colores_estocasticos = c("Datos" = "firebrick1", 
+                         "Datos\n suavizados" = "red4", 
+                         "Estimación\n estocástica" = "lightpink1")
+library(ggplot2)
+grafica_IRA_datos_estosss <- ggplot(data = IRA_bog_fin_estsss) +
+  geom_line(aes(x = IRA_bog_fin_estsss[, 1], y = IRA_bog_fin_estsss[, 4], 
+                color = "Estimación\n estocástica"), linewidth = 0.8) +
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[cortes],
+             color = "skyblue1", linewidth = 0.5) +
+  geom_line(aes(x = IRA_bog_fin_estsss[, 1], y = IRA_bog_fin_estsss[, 3], 
+                color = "Datos\n suavizados"), linewidth = 1) +
+  geom_point(aes(x = IRA_bog_fin_estsss[, 1], y = IRA_bog_fin_estsss[, 2], 
+                 color = "Datos"), size = 1) +
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de infectados')  +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  scale_color_manual(values = colores_estocasticos, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('blank', "solid",
+                                                              "solid"), 
+                                                 shape = c(16, NA, NA)))) + 
+  theme(legend.position = "bottom")
+grafica_IRA_datos_estosss
+
+media_sbestoss = vector(mode = 'list', length = 10000)
+media_ibestoss = vector(mode = 'list', length = 10000)
+media_rbestoss = vector(mode = 'list', length = 10000)
+for (k in 1:10000) {
+  media_sbestoss[[k]][1] = datos_susceptibles[1] # Dato tiempo 0
+  media_ibestoss[[k]][1] = datos_infectados[1] # Dato tiempo 0
+  media_rbestoss[[k]][1] = datos_recuperados[1] # Dato tiempo 0
+}
+for (k in 1:10000) {
+  for (i in 2:650) {
+    media_sbestoss[[k]][i] = datos_susceptibles[(i-1)] + actu_lambda[i] -
+      actu_betas[(i-1)]*datos_infectados1[(i-1)] -
+      actu_mu[i]*datos_susceptibles[(i-1)] - 
+      sqrt(abs(sigma_1ff))*datos_infectados1[(i-1)]*
+      datos_susceptibles[(i-1)]*rnorm(1, mean = 0, sd = 1)
+    media_ibestoss[[k]][i] = datos_infectados1[(i-1)] +
+      actu_betas[(i-1)]*datos_infectados1[(i-1)] -
+      (1/5.2)*datos_infectados1[(i-1)] -
+      actu_mu[i]*datos_infectados1[(i-1)] + sqrt(abs(sigma_1ff))*
+      datos_infectados1[(i-1)]*datos_susceptibles[(i-1)]*
+      rnorm(1, mean = 0, sd = 1) -
+      sqrt(sigma_2ff)*datos_infectados1[(i-1)]*rnorm(1, mean = 0, sd = 1)
+    media_rbestoss[[k]][i] = datos_recuperados[(i-1)] +
+      (1/5.2)*datos_infectados1[(i-1)] -
+      actu_mu[i]*datos_recuperados[(i-1)] +
+      sqrt(sigma_2ff)*datos_infectados1[(i-1)]*rnorm(1, mean = 0, sd = 1)
+  } 
+}
+
+plot(media_ibestoss[[1]], type = "l", col = "gray", ylim = c(min(unlist(media_ibestoss)), 
+                                                             max(unlist(media_ibestoss))))
+for (k in 2:10000) {
+  lines(media_ibestoss[[k]], type = "l", col = "gray")
+}
+lines(datos_infectados, lwd = 2, col = "blue")
+points(datos_mod_SIRSEIR[1:649], pch = 20)
+
+suma_cuadrados_2 = NULL
+for (j in 1:10000) {
+  suma_cuadrados_2[j] = (sum(media_ibestoss[[j]][1:649] - na_interpolation(datos_mod_SIRSEIR[1:649]))^2)/649
+}
+mean(suma_cuadrados_2)
+var(suma_cuadrados_2)
+var(suma_cuadrados_1)
+suma_cuadrados_4 = NULL
+
+for (j in 1:10000) {
+  suma_cuadrados_4[j] = (sum(sua_poblacion[1:649,3] - 
+                               (na_interpolation(datos_mod_SIRSEIR[1:649]) + 
+                                  media_rbestoss[[j]][1:649] + 
+                                  media_sbestoss[[j]][1:649]))^2)/649
+}
+mean(suma_cuadrados_4)
+
+# Graficas en GGPLOT
+# Para los infectados 
+media_perturbacion = NULL 
+for (s in 1:649) {
+  media_perturbacion[s] = mean(unlist(lapply(media_ibesto, function(x) x[s])))
+}
+cuantil0025pertur = NULL 
+for (s in 1:649) {
+  cuantil0025pertur[s] = quantile(unlist(lapply(media_ibesto, function(x) x[s])), 0.025)
+} 
+cuantil0975pertur = NULL 
+for (s in 1:649) {
+  cuantil0975pertur[s] = quantile(unlist(lapply(media_ibesto, function(x) x[s])), 0.975)
+}
+marcaspertur = NULL
+for (j in 1:500){
+  marcaspertur[((j-1)*649 + 1):(j*649)] = rep(as.character(j), 649)
+}
+
+pertu_infectados <- data.frame(c(rep((as.Date(dias_antes) + 3)[1:649],500)), 
+                               rep(media_perturbacion, 500), 
+                               rep(datos_mod_SIRSEIR[1:649], 500), 
+                               unlist(media_ibesto), marcaspertur, 
+                               rep(cuantil0025pertur, 500), 
+                               rep(cuantil0975pertur, 500))
+poligonoperturb = data.frame(x = c((as.Date(dias_antes) + 3)[1:649], 
+                                   (as.Date(dias_antes) + 3)[649:1]), 
+                             y = c(cuantil0025pertur[1:649], 
+                                   cuantil0975pertur[649:1]))
+names(pertu_infectados) <- c("fechas", "suavizado", "datos", "estimacion", 
+                             "marcasper", "cuantil1", "cuantil2")
+
+colores_estocasticos = c("Datos" = "firebrick1", 
+                         "Valor\n esperado" = "red4", 
+                         "Estimación\n estocástica" = "pink", 
+                         "Cuantil\n 2.5 %" = "red3", 
+                         "Cuantil\n 97.5 %" = "red3")
+library(ggplot2)
+ggplot(data = poligonoperturb) + 
+  geom_polygon(aes(x = poligonoperturb[, 1], 
+                   y = poligonoperturb[, 2]), colour = "transparent", fill = "blue")
+
+library(ggplot2)
+ggpred_infectadospertur = ggplot(data = pertu_infectados) + 
+  geom_line(data = pertu_infectados, aes(x = pertu_infectados[, 1], 
+                                         y = pertu_infectados[, 4], group = marcasper, 
+                                         color = "Estimación\n estocástica"), linewidth = 0.5) +
+  geom_polygon(data = poligonoperturb, aes(x = poligonoperturb[, 1], 
+                                           y = poligonoperturb[, 2]), colour = "transparent", fill = "palevioletred1") +
+  geom_point(data = pertu_infectados, aes(x = pertu_infectados[, 1], 
+                                          y = pertu_infectados[, 3], 
+                                          color = "Datos", group = marcasper), size = 1) + 
+  geom_line(data = pertu_infectados, aes(x = pertu_infectados[, 1], 
+                                         y = pertu_infectados[, 2], group = marcasper, 
+                                        color = "Valor\n esperado"), linewidth = 1) +
+  geom_line(data = pertu_infectados, aes(x = pertu_infectados[, 1], 
+                                         y = pertu_infectados[, 6], group = marcasper, 
+                                         color = "Cuantil\n 2.5 %"), linewidth = 0.5, 
+            linetype = "dotted") + 
+  geom_line(data = pertu_infectados, aes(x = pertu_infectados[, 1],
+                                         y = pertu_infectados[, 7], group = marcasper, 
+                                         color = "Cuantil\n 97.5 %",), linewidth = 0.5, 
+            linetype = "dotted") + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de infectados')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  scale_color_manual(values = colores_estocasticos, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('dashed', "dashed",
+                                                              "blank", "solid", "solid"), 
+                                                 shape = c(NA, NA, 20, NA, NA)))) + 
+  theme(legend.position = "bottom") 
+ggpred_infectadospertur
+
+# Para los recuperados 
+
+media_sbestoA = vector(mode = 'list', length = 500)
+media_ibestoA = vector(mode = 'list', length = 500)
+media_rbestoA = vector(mode = 'list', length = 500)
+for (k in 1:500) {
+  media_sbestoA[[k]][1] = media_sbesto[[k]][628] # Dato tiempo 0
+  media_ibestoA[[k]][1] = media_ibesto[[k]][628] # Dato tiempo 0
+  media_rbestoA[[k]][1] = media_rbesto[[k]][628] # Dato tiempo 0
+}
+for (k in 1:500) {
+  for (i in 2:21) {
+    media_sbestoA[[k]][i] = media_sbesto[[k]][(i+628)]
+    media_ibestoA[[k]][i] = media_ibesto[[k]][(i+628)]
+    media_rbestoA[[k]][i] = media_rbesto[[k]][(i+628)]
+  } 
+}
+
+media_perturbrecu = NULL 
+for (s in 1:21) {
+  media_perturbrecu[s] = mean(unlist(lapply(media_rbestoA, function(x) x[s])))
+}
+cuantil0025perrec = NULL 
+for (s in 1:21) {
+  cuantil0025perrec[s] = quantile(unlist(lapply(media_rbestoA, function(x) x[s])), 0.025)
+} 
+cuantil0975perrec = NULL 
+for (s in 1:21) {
+  cuantil0975perrec[s] = quantile(unlist(lapply(media_rbestoA, function(x) x[s])), 0.975)
+}
+marcasperturA = NULL
+for (j in 1:500){
+  marcasperturA[((j-1)*21 + 1):(j*21)] = rep(as.character(j), 21)
+}
+
+pertu_recuperados <- data.frame(c(rep((as.Date(dias_antes) + 3)[629:649],500)),
+                                rep(media_perturbrecu, 500), 
+                                rep(datos_recuperados[629:649], 500), 
+                                unlist(media_rbestoA), marcasperturA,
+                                rep(cuantil0025perrec, 500), 
+                                rep(cuantil0975perrec, 500))
+poligonoperturec = data.frame(x = c((as.Date(dias_antes) + 3)[629:649], 
+                                    (as.Date(dias_antes) + 3)[649:629]), 
+                              y = c(cuantil0025perrec, 
+                                    cuantil0975perrec[21:1]))
+names(pertu_recuperados) <- c("fechas", "suavizado", "datos", "estimacion", 
+                              "marcasper", "cuantil1", "cuantil2")
+
+colores_estocasticos = c("Datos" = "#698B69", 
+                         "Valor\n esperado" = "#2F4F4F", 
+                         "Estimación\n estocástica" = "#7FFFD4", 
+                         "Cuantil\n 2.5 %" = "#008B00", 
+                         "Cuantil\n 97.5 %" = "#008B00")
+library(ggplot2)
+ggplot(data = poligonoperturec) + 
+  geom_polygon(aes(x = poligonoperturec[, 1], 
+                   y = poligonoperturec[, 2]), colour = "transparent", fill = "blue")
+plot(pertu_recuperados[, 1], pertu_recuperados[, 2])
+library(ggplot2)
+ggpred_recuperadospertur = ggplot(data = pertu_recuperados) + 
+  geom_line(data = pertu_recuperados, aes(x = pertu_recuperados[, 1], 
+                                          y = pertu_recuperados[, 4], group = marcasper, 
+                                         color = "Estimación\n estocástica"), linewidth = 0.5) +
+  geom_polygon(data = poligonoperturec, aes(x = poligonoperturec[, 1],
+                                            y = poligonoperturec[, 2]), colour = "transparent", fill = "#66CDAA") +
+  geom_point(data = pertu_recuperados, aes(x = pertu_recuperados[, 1],
+                                           y = pertu_recuperados[, 3], 
+                                          color = "Datos", group = marcasper), size = 0.5) + 
+  geom_line(data = pertu_recuperados, aes(x = pertu_recuperados[, 1], 
+                                          y = pertu_recuperados[, 2], group = marcasper, 
+                                          color = "Valor\n esperado"), linewidth = 1) +
+  geom_line(data = pertu_recuperados, aes(x = pertu_recuperados[, 1], 
+                                          y = pertu_recuperados[, 6], group = marcasper, 
+                                          color = "Cuantil\n 2.5 %"), linewidth = 0.5, 
+            linetype = "dotted") + 
+  geom_line(data = pertu_recuperados, aes(x = pertu_recuperados[, 1],
+                                          y = pertu_recuperados[, 7], group = marcasper, 
+
+                                          color = "Cuantil\n 97.5 %",), linewidth = 0.5, 
+            linetype = "dotted") + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de recuperados')  + 
+  scale_x_date(date_breaks = "1 month", date_labels = "%m-%Y") + 
+  scale_color_manual(values = colores_estocasticos, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('dashed', "dashed",
+                                                              "blank", "solid", "solid"), 
+                                                 shape = c(NA, NA, 20, NA, NA)))) + 
+  theme(legend.position = "bottom") 
+
+ggpred_recuperadospertur
+
+# Para los susceptibles 
+media_perturbsusc = NULL 
+for (s in 1:21) {
+  media_perturbsusc[s] = mean(unlist(lapply(media_sbestoA, function(x) x[s])))
+}
+cuantil0025persus = NULL 
+for (s in 1:21) {
+  cuantil0025persus[s] = quantile(unlist(lapply(media_sbestoA, function(x) x[s])), 0.025)
+} 
+cuantil0975persus = NULL 
+for (s in 1:21) {
+  cuantil0975persus[s] = quantile(unlist(lapply(media_sbestoA, function(x) x[s])), 0.975)
+}
+marcasperturA = NULL
+for (j in 1:500){
+  marcasperturA[((j-1)*21 + 1):(j*21)] = rep(as.character(j), 21)
+}
+
+pertu_susceptibles <- data.frame(c(rep((as.Date(dias_antes) + 3)[629:649],500)), 
+                                 rep(media_perturbsusc, 500), 
+                                 rep(datos_susceptibles[629:649], 500), 
+                                 unlist(media_sbestoA), marcasperturA, 
+                                 rep(cuantil0025persus, 500), 
+                                 rep(cuantil0975persus, 500))
+poligonopertusus = data.frame(x = c((as.Date(dias_antes) + 3)[629:649], 
+                                    (as.Date(dias_antes) + 3)[649:629]), 
+                              y = c(cuantil0025persus[1:21], 
+                                    cuantil0975persus[21:1]))
+names(pertu_susceptibles) <- c("fechas", "suavizado", "datos", "estimacion", 
+                               "marcasper", "cuantil1", "cuantil2")
+
+colores_estocasticos = c("Datos" = "slateblue2", 
+                         "Valor\n esperado" = "royalblue4", 
+                         "Estimación\n estocástica" = "lightblue1", 
+                         "Cuantil\n 2.5 %" = "steelblue", 
+                         "Cuantil\n 97.5 %" = "steelblue")
+library(ggplot2)
+ggplot(data = poligonopertusus) + 
+  geom_polygon(aes(x = poligonopertusus[, 1], 
+                   y = poligonopertusus[, 2]), colour = "transparent", fill = "blue")
+plot(pertu_susceptibles[, 1], pertu_susceptibles[, 2])
+library(ggplot2)
+ggpred_susceptiblespertur = ggplot(data = pertu_susceptibles) + 
+  geom_line(data = pertu_susceptibles, aes(x = pertu_susceptibles[, 1], 
+                                           y = pertu_susceptibles[, 4], group = marcasper, 
+                                           color = "Estimación\n estocástica"), linewidth = 0.5) +
+  geom_polygon(data = poligonopertusus, aes(x = poligonopertusus[, 1], 
+                                            y = poligonopertusus[, 2]), colour = "transparent", fill = "lightskyblue2") +
+  geom_point(data = pertu_susceptibles, aes(x = pertu_susceptibles[, 1],
+                                            y = pertu_susceptibles[, 3], 
+                                            color = "Datos", group = marcasper), size = 0.5) + 
+  geom_line(data = pertu_susceptibles, aes(x = pertu_susceptibles[, 1], 
+                                           y = pertu_susceptibles[, 2], group = marcasper, 
+                                           color = "Valor\n esperado"), linewidth = 1) +
+  geom_line(data = pertu_susceptibles, aes(x = pertu_susceptibles[, 1],
+                                           y = pertu_susceptibles[, 6], group = marcasper, 
+                                           color = "Cuantil\n 2.5 %"), linewidth = 0.5, 
+            linetype = "dotted") + 
+  geom_line(data = pertu_susceptibles, aes(x = pertu_susceptibles[, 1],
+                                           y = pertu_susceptibles[, 7], group = marcasper, 
+                                          color = "Cuantil\n 97.5 %",), linewidth = 0.5, 
+            linetype = "dotted") + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de infectados')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  scale_color_manual(values = colores_estocasticos, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('dashed', "dashed",
+                                                              "blank", "solid", "solid"), 
+                                                 shape = c(NA, NA, 20, NA, NA)))) + 
+  theme(legend.position = "bottom") 
+ggpred_susceptiblespertur
