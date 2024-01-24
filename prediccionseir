@@ -1,0 +1,447 @@
+## Prediccion de los valores de beta 
+library(TSA)
+periodogram(ts(acti_betaseir[1:610]), xlab = "Frecuencia", ylab = "Periodograma", 
+            las =2, cex.axis = 0.8)
+abline(v = 0.02, lwd = 2, col = "purple")
+S = 1/0.02
+library(forecast)
+ndiffs(ts(acti_betaseir[1:610]))
+
+matriz_beta_1seir = matrix(0, ncol = 4, nrow = 4)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_1seir[i+1,j+1] = logLik(arima(ts(acti_betaseir[1:610]),
+                                          order = c(i, 0, j), 
+                                          seasonal = list(order = c(0, 0, 0), 
+                                                          period = 50)))}}
+matriz_beta_1seir
+max(matriz_beta_1seir)
+
+matriz_beta_2seir = matrix(0, ncol = 4, nrow = 4)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_2seir[i+1,j+1] = logLik(arima(ts(acti_betaseir[1:610]),
+                                              order = c(i, 1, j), 
+                                              seasonal = list(order = c(0, 0, 0), 
+                                                              period = 50)))}}
+matriz_beta_2seir
+max(matriz_beta_2seir)
+
+matriz_beta_3seir = matrix(0, ncol = 4, nrow = 4)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_3seir[i+1,j+1] = logLik(arima(ts(acti_betaseir[1:610]),
+                                              order = c(i, 2, j), 
+                                              seasonal = list(order = c(0, 0, 0), 
+                                                              period = 50)))}}
+matriz_beta_3seir
+max(matriz_beta_3seir)
+
+matriz_beta_4seir = matrix(0, ncol = 6, nrow = 6)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_4seir[i+1,j+1] = logLik(arima(ts(acti_betaseir[1:610]),
+                                              order = c(i, 3, j), 
+                                              seasonal = list(order = c(0, 0, 0), 
+                                                              period = 50)))}}
+matriz_beta_4seir
+max(matriz_beta_4seir)
+
+logLik(arima(ts(acti_betaseir[1:610]),
+             order = c(7, 1, 3), 
+             seasonal = list(order = c(0, 0, 0), 
+                             period = 50)))
+Tsay.test(ts(acti_betaseir[1:610])) # p = 7, d = 1, q = 3, s = 50
+
+matriz_beta_5seir = matrix(0, ncol = 4, nrow = 4)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_5seir[i+1,j+1] = logLik(arima(ts(acti_betaseir[1:610]),
+                                          order = c(7, 1, 3), 
+                                          seasonal = list(order = c(i, 0, j), 
+                                                          period = 50)))}}
+matriz_beta_5seir
+max(matriz_beta_5seir) # Q = 3, P = 0, D = 0 
+
+matriz_beta_6seir = matrix(0, ncol = 4, nrow = 4)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_6seir[i+1,j+1] = logLik(arima(ts(acti_betaseir[1:610]),
+                                          order = c(7, 1, 3), 
+                                          seasonal = list(order = c(i, 1, j), 
+                                                          period = 50)))}}
+matriz_beta_6seir
+max(matriz_beta_6seir)
+
+matriz_beta_7seir = matrix(0, ncol = 4, nrow = 4)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_7seir[i+1,j+1] = logLik(arima(ts(acti_betaseir[1:640]),
+                                              order = c(0, 3, 3),
+                                          seasonal = list(order = c(i, 2, j), 
+                                                          period = 36)))}}
+matriz_beta_7seir
+max(matriz_beta_7seir)
+
+ajuste_betaseir = arima(ts(acti_betaseir[1:610]), order = c(7, 1, 3), 
+                        seasonal = list(order = c(0, 0, 3), period = 50))
+?predict
+plot(c(acti_betaseir[1:610], predict(ajuste_betaseir, n.ahead = 172)$pred))
+abline(v = 610)
+prediccion_betaseir = predict(ajuste_betaseir, n.ahead = 172)$pred
+
+media_sbesperseir = vector(mode = 'list', length = 1000)
+media_ebesperseir = vector(mode = 'list', length = 1000)
+media_ibesperseir = vector(mode = 'list', length = 1000)
+media_rbesperseir = vector(mode = 'list', length = 1000)
+for (j in 1:500) {
+  media_sbesperseir[[j]][1] = acti_susceptiblesseir[610]
+  media_ebesperseir[[j]][1] = acti_expuestos[610]
+  media_ibesperseir[[j]][1] = sua_datos_mod_SIRSEIR_df[610,1] # Dato último dato de predicción
+  media_rbesperseir[[j]][1] = acti_recuperadosseir[610]
+  } 
+for (j in 1:500) {
+  for (k in 2:172) {
+    media_sbesperseir[[j]][k] = media_sbesperseir[[j]][(k-1)] + delta_pob1[(k+610)] -
+      prediccion_betaseir[(k-1)]*media_sbesperseir[[j]][(k-1)]*media_ibesperseir[[j]][(k-1)] -
+      actu_mu[(k+610)]*media_sbesperseir[[j]][(k-1)] - 
+      sqrt(sigma_32)*media_sbesperseir[[j]][(k-1)]*media_ibesperseir[[j]][(k-1)]*rnorm(1, mean = 0, sd = 1)
+    media_ebesperseir[[j]][k] = media_ebesperseir[[j]][(k-1)] +
+      prediccion_betaseir[(k-1)]*media_sbesperseir[[j]][(k-1)]*media_ibesperseir[[j]][(k-1)] - 
+      (1/30.345)*media_ebesperseir[[j]][(k-1)] - actu_mu[(k+610)]*media_ebesperseir[[j]][(k-1)] + 
+      sqrt(sigma_32)*media_sbesperseir[[j]][(k-1)]*media_ibesperseir[[j]][(k-1)]*rnorm(1, mean = 0, sd = 1) -
+      sqrt(sigma_42)*media_ebesperseir[[j]][(k-1)]*rnorm(1, mean = 0, sd = 1)
+    media_ibesperseir[[j]][k] = media_ibesperseir[[j]][(k-1)] + 
+      (1/30.345)*media_ebesperseir[[j]][(k-1)] - (1/5.2)*media_ibesperseir[[j]][(k-1)] - 
+      actu_mu[(k+610)]*media_ibesperseir[[j]][(k-1)] + 
+      sqrt(sigma_42)*media_ebesperseir[[j]][(k-1)]*rnorm(1, mean = 0, sd = 1) - 
+      sqrt(sigma_52)*media_ibesperseir[[j]][(k-1)]*rnorm(1, mean = 0, sd = 1)
+    media_rbesperseir[[j]][k] = media_rbesperseir[[j]][(k-1)] +
+      (1/5.2)*media_ibesperseir[[j]][(k-1)] - actu_mu[(k+610)]*media_rbesperseir[[j]][(k-1)] +
+      sqrt(sigma_52)*media_ibesperseir[[j]][(k-1)]*rnorm(1, mean = 0, sd = 1)
+  }
+}
+
+plot(media_ebesperseir[[4]], lwd = 2, type = "l")
+
+media_perturbaseir = NULL 
+for (s in 1:172) {
+  media_perturbaseir[s] = mean(unlist(lapply(media_ibesperseir, function(x) x[s])))
+}
+cuantil0025perseir = NULL 
+for (s in 1:172) {
+  cuantil0025perseir[s] = quantile(unlist(lapply(media_ibesperseir, function(x) x[s])), 0.025)
+} 
+cuantil0975perseir = NULL 
+for (s in 1:172) {
+  cuantil0975perseir[s] = quantile(unlist(lapply(media_ibesperseir, function(x) x[s])), 0.975)
+}
+marcasperseir = NULL
+for (j in 1:500){
+  marcasperseir[((j-1)*202 + 1):(j*202)] = rep(as.character(j), 202)
+}
+media_ibpredicseir = vector(mode = 'list', length = 500)
+for (j in 1:500){
+  media_ibpredicseir[[j]] = c(rep(NA, 30), media_ibesperseir[[j]])
+}
+
+pred_infectseir <- data.frame(c(rep((as.Date(dias_antes) + 3)[581:782], 500)), 
+                              rep(c(sua_datos_mod_SIRSEIR_df[581:610,1], media_perturbaseir[1:172]), 500), 
+                              rep(c(datos_mod_SIRSEIR[581:610], rep(NA, 172)), 500), 
+                              unlist(media_ibpredicseir), 
+                              marcasperseir, 
+                              rep(c(sua_datos_mod_SIRSEIR_df[581:610,1], cuantil0025perseir), 500), 
+                              rep(c(sua_datos_mod_SIRSEIR_df[581:610,1], cuantil0975perseir), 500))
+poligonoseir = data.frame(x = c((as.Date(dias_antes) + 3)[611:782], 
+                                (as.Date(dias_antes) + 3)[782:611]), 
+                          y = c(cuantil0025perseir[1:172], 
+                                cuantil0975perseir[172:1]))
+library(ggplot2)
+ggplot(data = poligonoseir) + 
+  geom_polygon(aes(x = poligonoseir[, 1], 
+                   y = poligonoseir[, 2]), colour = "transparent", fill = "blue")
+View(pred_infectados)
+names(pred_infectados) = c("Fecha", "Suavizado", "Datos", "Prediccion", "marcas")
+
+colores_estocasticos = c("Datos" = "firebrick1", 
+                         "Valor\n esperado" = "red4", 
+                         "Estimación\n estocástica" = "pink", 
+                         "Cuantil\n 2.5 %" = "red3", 
+                         "Cuantil\n 97.5 %" = "red3")
+library(ggplot2)
+ggpred_infectadospeseir = ggplot(data = pred_infectseir) + 
+  geom_line(data = pred_infectseir, aes(x = pred_infectseir[, 1], 
+                                        y = pred_infectseir[, 4], group = marcasperseir, 
+                                        color = "Estimación\n estocástica"), linewidth = 0.5) +
+  geom_polygon(data = poligonoseir, aes(x = poligonoseir[, 1], 
+                                        y = poligonoseir[, 2]), colour = "transparent", fill = "palevioletred1") +
+  geom_point(data = pred_infectseir, aes(x = pred_infectseir[, 1], 
+                                         y = pred_infectseir[, 3], 
+                                         color = "Datos", group = marcasperseir), size = 1) + 
+  geom_line(data = pred_infectseir, aes(x = pred_infectseir[, 1], 
+                                        y = pred_infectseir[, 2], group = marcasperseir, 
+                                        color = "Valor\n esperado"), linewidth = 1) +
+  geom_line(data = pred_infectseir, aes(x = pred_infectseir[, 1], 
+                                        y = pred_infectseir[, 6], group = marcasperseir, 
+                                        color = "Cuantil\n 2.5 %"), linewidth = 0.5, 
+            linetype = "dotted") + 
+  geom_line(data = pred_infectseir, aes(x = pred_infectseir[, 1],
+                                        y = pred_infectseir[, 7], group = marcasperseir, 
+                                        color = "Cuantil\n 97.5 %",), linewidth = 0.5, 
+            linetype = "dotted") + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de infectados')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  scale_color_manual(values = colores_estocasticos, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('dashed', "dashed",
+                                                              "blank", "solid", "solid"), 
+                                                 shape = c(NA, NA, 20, NA, NA)))) + 
+  theme(legend.position = "bottom") 
+ggpred_infectadospeseir
+
+media_perturbaseirsus = NULL 
+for (s in 1:172) {
+  media_perturbaseirsus[s] = mean(unlist(lapply(media_sbesperseir, function(x) x[s])))
+}
+cuantil0025perseirsus = NULL 
+for (s in 1:172) {
+  cuantil0025perseirsus[s] = quantile(unlist(lapply(media_sbesperseir, function(x) x[s])), 0.025)
+} 
+cuantil0975perseirsus = NULL 
+for (s in 1:172) {
+  cuantil0975perseirsus[s] = quantile(unlist(lapply(media_sbesperseir, function(x) x[s])), 0.975)
+}
+marcasperseir = NULL
+for (j in 1:500){
+  marcasperseir[((j-1)*202 + 1):(j*202)] = rep(as.character(j), 202)
+}
+media_sbpredicseir = vector(mode = 'list', length = 500)
+for (j in 1:500){
+  media_sbpredicseir[[j]] = c(rep(NA, 30), media_sbesperseir[[j]])
+}
+
+pred_suscepseir <- data.frame(c(rep((as.Date(dias_antes) + 3)[581:782], 500)), 
+                              rep(c(datos_susceptiblesseir[581:610], media_perturbaseirsus[1:172]), 500), 
+                              rep(c(datos_susceptiblesseir[581:610], rep(NA, 172)), 500), 
+                              unlist(media_sbpredicseir), 
+                              marcasperseir, 
+                              rep(c(datos_susceptiblesseir[581:610], cuantil0025perseirsus), 500), 
+                              rep(c(datos_susceptiblesseir[581:610], cuantil0975perseirsus), 500))
+poligonoseirsus = data.frame(x = c((as.Date(dias_antes) + 3)[611:782], 
+                                (as.Date(dias_antes) + 3)[782:611]), 
+                          y = c(cuantil0025perseirsus[1:172], 
+                                cuantil0975perseirsus[172:1]))
+library(ggplot2)
+ggplot(data = poligonoseirsus) + 
+  geom_polygon(aes(x = poligonoseirsus[, 1], 
+                   y = poligonoseirsus[, 2]), colour = "transparent", fill = "blue")
+names(pred_infectados) = c("Fecha", "Suavizado", "Datos", "Prediccion", "marcas")
+
+colores_estocasticos = c("Datos" = "slateblue2", 
+                         "Valor\n esperado" = "royalblue4", 
+                         "Estimación\n estocástica" = "lightblue1", 
+                         "Cuantil\n 2.5 %" = "steelblue", 
+                         "Cuantil\n 97.5 %" = "steelblue")
+library(ggplot2)
+ggpred_susceptiblespeseir = ggplot(data = pred_suscepseir ) + 
+  geom_line(data = pred_suscepseir, aes(x = pred_suscepseir[, 1], 
+                                        y = pred_suscepseir[, 4], group = marcasperseir, 
+                                        color = "Estimación\n estocástica"), linewidth = 0.5) +
+  geom_polygon(data = poligonoseirsus, aes(x = poligonoseirsus[, 1],
+                                           y = poligonoseirsus[, 2]), colour = "transparent", fill = "#66CDAA") +
+  geom_point(data = pred_suscepseir, aes(x = pred_suscepseir[, 1], 
+                                         y = pred_suscepseir[, 3], 
+                                         color = "Datos", group = marcasperseir), size = 1) + 
+  geom_line(data = pred_suscepseir, aes(x = pred_suscepseir[, 1], 
+                                        y = pred_suscepseir[, 2], group = marcasperseir, 
+                                        color = "Valor\n esperado"), linewidth = 1) +
+  geom_line(data = pred_suscepseir, aes(x = pred_suscepseir[, 1], 
+                                        y = pred_suscepseir[, 6], group = marcasperseir, 
+                                        color = "Cuantil\n 2.5 %"), linewidth = 0.5, 
+            linetype = "dotted") + 
+  geom_line(data = pred_suscepseir, aes(x = pred_suscepseir[, 1],
+                                        y = pred_suscepseir[, 7], group = marcasperseir, 
+                                        color = "Cuantil\n 97.5 %",), linewidth = 0.5, 
+            linetype = "dotted") + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de susceptibles')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  scale_color_manual(values = colores_estocasticos, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('dashed', "dashed",
+                                                              "blank", "solid", "solid"), 
+                                                 shape = c(NA, NA, 20, NA, NA)))) + 
+  theme(legend.position = "bottom") 
+ggpred_susceptiblespeseir
+
+media_perturbaseirexp = NULL 
+for (s in 1:172) {
+  media_perturbaseirexp[s] = mean(unlist(lapply(media_ebesperseir, function(x) x[s])))
+}
+cuantil0025perseirexp = NULL 
+for (s in 1:172) {
+  cuantil0025perseirexp[s] = quantile(unlist(lapply(media_ebesperseir, function(x) x[s])), 0.025)
+} 
+cuantil0975perseirexp = NULL 
+for (s in 1:172) {
+  cuantil0975perseirexp[s] = quantile(unlist(lapply(media_ebesperseir, function(x) x[s])), 0.975)
+}
+marcasperseir = NULL
+for (j in 1:500){
+  marcasperseir[((j-1)*202 + 1):(j*202)] = rep(as.character(j), 202)
+}
+media_ebpredicseir = vector(mode = 'list', length = 500)
+for (j in 1:500){
+  media_ebpredicseir[[j]] = c(rep(NA, 30), media_ebesperseir[[j]])
+}
+
+pred_expuesseir <- data.frame(c(rep((as.Date(dias_antes) + 3)[581:782], 500)), 
+                              rep(c(datos_expuestosseir[581:610], media_perturbaseirexp[1:172]), 500), 
+                              rep(c(datos_expuestosseir[581:610], rep(NA, 172)), 500), 
+                              unlist(media_ebpredicseir), 
+                              marcasperseir, 
+                              rep(c(datos_expuestosseir[581:610], cuantil0025perseirexp), 500), 
+                              rep(c(datos_expuestosseir[581:610], cuantil0975perseirexp), 500))
+poligonoseirexp = data.frame(x = c((as.Date(dias_antes) + 3)[611:782], 
+                                   (as.Date(dias_antes) + 3)[782:611]), 
+                             y = c(cuantil0025perseirexp[1:172], 
+                                   cuantil0975perseirexp[172:1]))
+library(ggplot2)
+ggplot(data = poligonoseirexp) + 
+  geom_polygon(aes(x = poligonoseirexp[, 1], 
+                   y = poligonoseirexp[, 2]), colour = "transparent", fill = "blue")
+# names(pred_expuesseir) = c("Fecha", "Suavizado", "Datos", "Prediccion", "marcas")
+
+colores_estocasticos = c("Datos" = "darkorange1", 
+                         "Valor\n esperado" = "darkorange4", 
+                         "Estimación\n estocástica" = "lightgoldenrod1", 
+                         "Cuantil\n 2.5 %" = "orange3", 
+                         "Cuantil\n 97.5 %" = "orange3")
+library(ggplot2)
+ggpred_expuestospeseir = ggplot(data = pred_expuesseir) + 
+  geom_line(data = pred_expuesseir, aes(x = pred_expuesseir[, 1], 
+                                        y = pred_expuesseir[, 4], group = marcasperseir, 
+                                        color = "Estimación\n estocástica"), linewidth = 0.5) +
+  geom_polygon(data = poligonoseirexp, aes(x = poligonoseirexp[, 1],
+                                           y = poligonoseirexp[, 2]), colour = "transparent", fill = "#EECBAD") +
+  geom_point(data = pred_expuesseir, aes(x = pred_expuesseir[, 1], 
+                                         y = pred_expuesseir[, 3], 
+                                         color = "Datos", group = marcasperseir), size = 1) + 
+  geom_line(data = pred_expuesseir, aes(x = pred_expuesseir[, 1], 
+                                        y = pred_expuesseir[, 2], group = marcasperseir, 
+                                        color = "Valor\n esperado"), linewidth = 1) +
+  geom_line(data = pred_expuesseir, aes(x = pred_expuesseir[, 1], 
+                                        y = pred_expuesseir[, 6], group = marcasperseir, 
+                                        color = "Cuantil\n 2.5 %"), linewidth = 0.5, 
+            linetype = "dotted") + 
+  geom_line(data = pred_expuesseir, aes(x = pred_expuesseir[, 1],
+                                        y = pred_expuesseir[, 7], group = marcasperseir, 
+                                        color = "Cuantil\n 97.5 %",), linewidth = 0.5, 
+            linetype = "dotted") + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de expuestos')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  scale_color_manual(values = colores_estocasticos, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('dashed', "dashed",
+                                                              "blank", "solid", "solid"), 
+                                                 shape = c(NA, NA, 20, NA, NA)))) + 
+  theme(legend.position = "bottom") 
+ggpred_expuestospeseir
+
+media_perturbaseirrec = NULL 
+for (s in 1:172) {
+  media_perturbaseirrec[s] = mean(unlist(lapply(media_rbesperseir, function(x) x[s])))
+}
+cuantil0025perseirrec = NULL 
+for (s in 1:172) {
+  cuantil0025perseirrec[s] = quantile(unlist(lapply(media_rbesperseir, function(x) x[s])), 0.025)
+} 
+cuantil0975perseirrec = NULL 
+for (s in 1:172) {
+  cuantil0975perseirrec[s] = quantile(unlist(lapply(media_rbesperseir, function(x) x[s])), 0.975)
+}
+marcasperseir = NULL
+for (j in 1:500){
+  marcasperseir[((j-1)*202 + 1):(j*202)] = rep(as.character(j), 202)
+}
+media_rbpredicseir = vector(mode = 'list', length = 500)
+for (j in 1:500){
+  media_rbpredicseir[[j]] = c(rep(NA, 30), media_rbesperseir[[j]])
+}
+
+pred_recupeseir <- data.frame(c(rep((as.Date(dias_antes) + 3)[581:782], 500)), 
+                              rep(c(datos_recuperadosseir[580:610], media_perturbaseirrec[2:172]), 500), 
+                              rep(c(datos_recuperadosseir[580:609], rep(NA, 172)), 500), 
+                              unlist(media_rbpredicseir), 
+                              marcasperseir, 
+                              rep(c(datos_recuperadosseir[580:610], cuantil0025perseirrec[2:172]), 500), 
+                              rep(c(datos_recuperadosseir[580:610], cuantil0975perseirrec[2:172]), 500))
+poligonoseirrec = data.frame(x = c((as.Date(dias_antes) + 3)[611:782], 
+                                   (as.Date(dias_antes) + 3)[782:611]), 
+                             y = c(cuantil0025perseirrec[1:172], 
+                                   cuantil0975perseirrec[172:1]))
+library(ggplot2)
+ggplot(data = poligonoseirrec) + 
+  geom_polygon(aes(x = poligonoseirrec[, 1], 
+                   y = poligonoseirrec[, 2]), colour = "transparent", fill = "blue")
+# names(pred_expuesseir) = c("Fecha", "Suavizado", "Datos", "Prediccion", "marcas")
+
+colores_estocasticos = c("Datos" = "#698B69", 
+                         "Valor\n esperado" = "#2F4F4F", 
+                         "Estimación\n estocástica" = "#7FFFD4", 
+                         "Cuantil\n 2.5 %" = "#008B00", 
+                         "Cuantil\n 97.5 %" = "#008B00")
+library(ggplot2)
+ggpred_recuperadospeseir = ggplot(data = pred_recupeseir) + 
+  geom_line(data = pred_recupeseir, aes(x = pred_recupeseir[, 1], 
+                                        y = pred_recupeseir[, 4], group = marcasperseir, 
+                                        color = "Estimación\n estocástica"), linewidth = 0.5) +
+  geom_polygon(data = poligonoseirrec, aes(x = poligonoseirrec[, 1],
+                                           y = poligonoseirrec[, 2]), colour = "transparent", fill = "#66CDAA") +
+  geom_point(data = pred_recupeseir, aes(x = pred_recupeseir[, 1], 
+                                         y = pred_recupeseir[, 3], 
+                                         color = "Datos", group = marcasperseir), size = 1) + 
+  geom_line(data = pred_recupeseir, aes(x = pred_recupeseir[, 1], 
+                                        y = pred_recupeseir[, 2], group = marcasperseir, 
+                                        color = "Valor\n esperado"), linewidth = 1) +
+  geom_line(data = pred_recupeseir, aes(x = pred_recupeseir[, 1], 
+                                        y = pred_recupeseir[, 6], group = marcasperseir, 
+                                        color = "Cuantil\n 2.5 %"), linewidth = 0.5, 
+            linetype = "dotted") + 
+  geom_line(data = pred_recupeseir, aes(x = pred_recupeseir[, 1],
+                                        y = pred_recupeseir[, 7], group = marcasperseir, 
+                                        color = "Cuantil\n 97.5 %",), linewidth = 0.5, 
+            linetype = "dotted") + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de recuperados')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  scale_color_manual(values = colores_estocasticos, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('dashed', "dashed",
+                                                              "blank", "solid", "solid"), 
+                                                 shape = c(NA, NA, 20, NA, NA)))) + 
+  theme(legend.position = "bottom") 
+ggpred_recuperadospeseir
+
+plot(pred_infectseir[1:183,2])
+which(pred_infectseir[1:183,1] == max(pred_infectseir[1:183,2]))
+# 44 2021-12-18 
+plot(pred_recupeseir[1:183,2])
+which(pred_recupeseir[1:183,2] == max(pred_recupeseir[1:183,2]))
+# 130 2023-08-12
+plot(pred_suscepseir[1:183,2])
+which(pred_suscepseir[1:183,1] == min(pred_suscepseir[1:183,2]))
+# 80 2022-08-27
+plot(pred_expuesseir[1:183,2])
+
+which(pred_expuesseir[1:183,2] == max(pred_expuesseir[1:183,2]))
+which(pred_expuesseir[183,2] == max(pred_expuesseir[1:15,2]))
+# 12 2021-05-08 NO SE PREDICEN ESTOS DIAS 
+# 22 2021-07-17 NO SE PREDICEN ESTOS DIAS 
+
+dffinalseir= data.frame(pred_suscepseir[c(32, 44, 80, 130, 183),1], 
+                        pred_suscepseir[c(32, 44, 80, 130, 183),c(2, 6, 7)], 
+                        pred_expuesseir[c(32, 44, 80, 130, 183),c(2, 6, 7)], 
+                        pred_infectseir[c(32, 44, 80, 130, 183),c(2, 6, 7)], 
+                        pred_recupeseir[c(32, 44, 80, 130, 183),c(2, 6, 7)])
+names(dffinalseir) = c("dia", "s", "s1", "s2", "e", "e1", "e2", 
+                       "i", "i1", "i2", "r", "r1", "r2")
+dffinalseir
