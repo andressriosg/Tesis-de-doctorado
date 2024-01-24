@@ -1,0 +1,505 @@
+## Prediccion de los valores de beta 
+library(TSA)
+periodogram(ts(beta_acti[1:649]), xlab = "Frecuencia", ylab = "Periodograma", 
+            las =2, cex.axis = 0.8)
+abline(v = 0.019, lwd = 2, col = "purple")
+S = 1/0.019
+ndiffs(ts(beta_acti[1:649]))
+matriz_beta_1 = matrix(0, ncol = 4, nrow = 4)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_1[i+1,j+1] = logLik(arima(ts(beta_acti[1:649]),
+                                          order = c(i, 0, j), 
+                                          seasonal = list(order = c(0, 0, 0), 
+                                                          period = 53)))}}
+matriz_beta_1
+max(matriz_beta_1)
+
+matriz_beta_2 = matrix(0, ncol = 4, nrow = 4)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_2[i+1,j+1] = logLik(arima(ts(beta_acti[1:649]),
+                                          order = c(i, 1, j), 
+                                          seasonal = list(order = c(0, 0, 0), 
+                                                          period = 53)))}}
+matriz_beta_2
+max(matriz_beta_2)
+
+matriz_beta_3 = matrix(0, ncol = 6, nrow = 6)
+for (i in 0:5) {
+  for (j in 0:5) {
+    matriz_beta_3[i+1,j+1] = logLik(arima(ts(beta_acti[1:649]),
+                                          order = c(i, 2, j), 
+                                          seasonal = list(order = c(0, 0, 0), 
+                                                          period = 53)))}}
+matriz_beta_3
+max(matriz_beta_3)
+
+matriz_beta_4 = matrix(0, ncol = 6, nrow = 6)
+for (i in 0:5) {
+  for (j in 0:5) {
+    matriz_beta_4[i+1,j+1] = logLik(arima(ts(beta_acti[1:649]),
+                                          order = c(i, 3, j), 
+                                          seasonal = list(order = c(0, 0, 0), 
+                                                          period = 53)))}}
+matriz_beta_4
+max(matriz_beta_4, matriz_beta_3, matriz_beta_2, matriz_beta_1)
+
+Tsay.test(ts(beta_acti[1:649])) # p = 4, d = 2, q = 2, s = 53
+
+matriz_beta_5 = matrix(0, ncol = 4, nrow = 4)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_5[i+1,j+1] = logLik(arima(ts(beta_acti[1:649]),
+                                          order = c(4, 2, 2), 
+                                          seasonal = list(order = c(i, 0, j), 
+                                                          period = 53)))}}
+matriz_beta_5
+max(matriz_beta_5) # Q = 3, P = 0, D = 0 
+
+matriz_beta_6 = matrix(0, ncol = 4, nrow = 4)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_6[i+1,j+1] = logLik(arima(ts(beta_acti[1:649]),
+                                          order = c(4, 2, 2), 
+                                          seasonal = list(order = c(i, 1, j), 
+                                                          period = 53)))}}
+matriz_beta_6
+max(matriz_beta_6)
+
+matriz_beta_7 = matrix(0, ncol = 4, nrow = 4)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_7[i+1,j+1] = logLik(arima(ts(beta_acti[1:649]),
+                                          order = c(4, 2, 2), 
+                                          seasonal = list(order = c(i, 2, j), 
+                                                          period = 53)))}}
+matriz_beta_7
+max(matriz_beta_7)
+
+matriz_beta_8 = matrix(0, ncol = 4, nrow = 4)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_8[i+1,j+1] = logLik(arima(ts(beta_acti[1:649]),
+                                          order = c(4, 2, 2), 
+                                          seasonal = list(order = c(i, 3, j), 
+                                                          period = 53)))}}
+matriz_beta_8
+max(matriz_beta_5, matriz_beta_6, matriz_beta_7, matriz_beta_8)
+
+ajuste_beta = arima(ts(beta_acti[1:649]), order = c(4, 2, 2), 
+                    seasonal = list(order = c(0, 0, 3), period = 53))
+library(forecast)
+pronostico_beta= forecast(ajuste_beta, h = 300)
+pronostico_beta
+plot(pronostico_beta$lower[,1], ylim = c(min(pronostico_beta$lower[,1]), 
+                                         max(pronostico_beta$upper[,1])))
+lines(pronostico_beta$upper[,1])
+lines(pronostico_beta$mean)
+
+plot(1:(649+300), c(beta_acti[1:649], rep(NA, 300)), lwd = 2, col = "blue", ylim = 
+       c(0, max(pronostico_beta$upper[,1])), type = "l")
+lines(649:948, pronostico_beta$mean, col = "red", lwd = 2)
+lines(649:948, pronostico_beta$upper[,1], col = "black", lwd = 2)
+lines(649:948, pronostico_beta$lower[,1], col = "black", lwd = 2)
+
+## Predicción para valores desconocidos. Modelo SIR 
+
+delta_pob1 = NULL 
+for (i in 2:782) {
+  delta_pob1[i] = (sua_poblacion[i,3] - sua_poblacion[(i-1),3])
+}
+actu_mu = NULL 
+for (i in 2:782) {
+  actu_mu[i] = (sua_poblacion[i,3] - sua_poblacion[(i-1),3] + delta_pob1[i])/sua_poblacion[(i-1),3]
+}
+media_sbesper = vector(mode = 'list', length = 1000)
+media_ibesper = vector(mode = 'list', length = 1000)
+media_rbesper = vector(mode = 'list', length = 1000)
+for (j in 1:500) {
+  media_sbesper[[j]][1] = datos_susceptibles[649] # Dato último dato de predicción
+  media_ibesper[[j]][1] = sua_datos_mod_SIRSEIR_df[649,1] # Dato último dato de predicción
+  media_rbesper[[j]][1] = datos_recuperados[649] # Dato último dato de predicción
+}
+for (j in 1:500) {
+  for (k in 2:133) {
+    media_sbesper[[j]][k] = media_sbesper[[j]][(k-1)] + delta_pob1[(k+649)] -
+      pronostico_beta$mean[(k-1)]*media_sbesper[[j]][(k-1)]*media_ibesper[[j]][(k-1)] -
+      actu_mu[(k+649)]*media_sbesper[[j]][(k-1)] - 
+      sqrt(abs(sigma_1f))*media_ibesper[[j]][(k-1)]*media_sbesper[[j]][(k-1)]*rnorm(1, mean = 0, sd = 1)
+    media_ibesper[[j]][k] = media_ibesper[[j]][(k-1)] +
+      pronostico_beta$mean[(k-1)]*media_sbesper[[j]][(k-1)]*media_ibesper[[j]][(k-1)] -
+      (1/5.2)*media_ibesper[[j]][(k-1)] - actu_mu[(k+649)]*media_ibesper[[j]][(k-1)] + 
+      sqrt(abs(sigma_1f))*media_ibesper[[j]][(k-1)]*media_sbesper[[j]][(k-1)]*rnorm(1, mean = 0, sd = 1) -
+      sqrt(sigma_2f)*media_ibesper[[j]][(k-1)]*rnorm(1, mean = 0, sd = 1)
+    media_rbesper[[j]][k] = media_rbesper[[j]][(k-1)] +
+      (1/5.2)*media_ibesper[[j]][(k-1)] - actu_mu[(k+649)]*media_rbesper[[j]][(k-1)] +
+      sqrt(sigma_2f)*media_ibesper[[j]][(k-1)]*rnorm(1, mean = 0, sd = 1)
+  }
+}
+
+minimo = NULL
+for (s in 1:133) {
+  minimo[s] = min(unlist(lapply(media_ibesper, function(x) x[s])))
+}
+maximo = NULL
+for (s in 1:133) {
+  maximo[s] = min(unlist(lapply(media_ibesper, function(x) x[s])))
+}
+media_prediccion = NULL 
+for (s in 1:133) {
+  media_prediccion[s] = mean(unlist(lapply(media_ibesper, function(x) x[s])))
+}
+mediana_prediccion = NULL 
+for (s in 1:133) {
+  mediana_prediccion[s] = median(unlist(lapply(media_ibesper, function(x) x[s])))
+}
+cuantil0025 = NULL 
+for (s in 1:133) {
+  cuantil0025[s] = quantile(unlist(lapply(media_ibesper, function(x) x[s])), 0.025)
+} 
+cuantil0975 = NULL 
+for (s in 1:133) {
+  cuantil0975[s] = quantile(unlist(lapply(media_ibesper, function(x) x[s])), 0.975)
+}
+
+plot(c(sua_datos_mod_SIRSEIR_df[600:649,1], media_ibesper[[1]][1:133]), type = "l", col = "gray", 
+     ylim = c(min(unlist(media_ibesper)), max(unlist(media_ibesper))))
+for (j in 2:500) {
+  lines(c(sua_datos_mod_SIRSEIR_df[600:649,1], media_ibesper[[j]][1:133]), col = "gray")
+}
+lines(c(rep(NA, 50), media_prediccion[1:133]), lwd = 2, col = "blue")
+lines(c(rep(NA, 50), cuantil0025[1:133]), lwd = 2, col = "red")
+lines(c(rep(NA, 50), cuantil0975[1:133]), lwd = 2, col = "green")
+
+media_ibpredic = vector(mode = 'list', length = 500)
+for (j in 1:500){
+  media_ibpredic[[j]] = c(rep(NA, 50), media_ibesper[[j]])
+}
+
+marcas = NULL
+for (j in 1:500){
+  marcas[((j-1)*183 + 1):(j*183)] = rep(as.character(j), 183)
+}
+
+pred_infectados <- data.frame(c(rep((as.Date(dias_antes) + 3)[600:782], 500)), 
+                              rep(c(sua_datos_mod_SIRSEIR_df[600:649,1], media_prediccion), 500), 
+                              rep(c(datos_mod_SIRSEIR[600:649], rep(NA, 133)), 500), 
+                              unlist(media_ibpredic), 
+                              marcas, 
+                              rep(c(sua_datos_mod_SIRSEIR_df[600:649,1], cuantil0025), 500), 
+                              rep(c(sua_datos_mod_SIRSEIR_df[600:649,1], cuantil0975), 500))
+poligono = data.frame(x = c((as.Date(dias_antes) + 3)[650:782], 
+                      (as.Date(dias_antes) + 3)[782:650]), 
+                      y = c(cuantil0025[1:133], 
+                            cuantil0975[133:1]))
+polygon(poligono)
+ggplot(data = poligono) + 
+  geom_polygon(aes(x = poligono[, 1], 
+                   y = poligono[, 2]), colour = "transparent", fill = "blue")
+View(pred_infectados)
+names(pred_infectados) = c("Fecha", "Suavizado", "Datos", "Prediccion", "marcas")
+
+colores_estocasticos = c("Datos" = "firebrick1", 
+                         "Valor\n esperado" = "red4", 
+                         "Estimación\n estocástica" = "pink", 
+                         "Cuantil\n 2.5 %" = "red3", 
+                         "Cuantil\n 97.5 %" = "red3")
+library(ggplot2)
+ggpred_infectados = ggplot(data = pred_infectados) + 
+ geom_line(data = pred_infectados, aes(x = pred_infectados[, 1], 
+                                        y = pred_infectados[, 4], group = marcas, 
+                                        color = "Estimación\n estocástica"), linewidth = 0.5) + 
+  geom_polygon(data = poligono, aes(x = poligono[, 1], 
+                                    y = poligono[, 2]), colour = "transparent", fill = "lightpink1") +
+  geom_point(aes(x = pred_infectados[, 1], y = pred_infectados[, 3], color = "Datos"),
+             size = 1) + 
+  geom_line(data = pred_infectados, aes(x = pred_infectados[, 1], 
+                                        y = pred_infectados[, 2], group = marcas, 
+                                        color = "Valor\n esperado"), linewidth = 1) +
+  geom_line(data = pred_infectados, aes(x = pred_infectados[, 1], 
+                                        y = pred_infectados[, 6], group = marcas, 
+                                        color = "Cuantil\n 2.5 %"), linewidth = 0.5, 
+            linetype = "dotted") + 
+  geom_line(data = pred_infectados, aes(x = pred_infectados[, 1], 
+                                        y = pred_infectados[, 7], group = marcas, 
+                                        color = "Cuantil\n 97.5 %",), linewidth = 0.5, 
+            linetype = "dotted") + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de infectados')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  scale_color_manual(values = colores_estocasticos, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('dashed', "dashed",
+                                                              "blank", "solid", "solid"), 
+                                                 shape = c(NA, NA, 20, NA, NA)))) + 
+  theme(legend.position = "bottom") + ylim(0, 4e+05)
+ggpred_infectados
+
+media_prediccrec = NULL 
+for (s in 1:133) {
+  media_prediccrec[s] = mean(unlist(lapply(media_rbesper, function(x) x[s])))
+}
+mediana_prediccrec = NULL 
+for (s in 1:133) {
+  mediana_prediccrec[s] = median(unlist(lapply(media_rbesper, function(x) x[s])))
+}
+cuantil0025rec = NULL 
+for (s in 1:133) {
+  cuantil0025rec[s] = quantile(unlist(lapply(media_rbesper, function(x) x[s])), 0.025)
+} 
+cuantil0975rec = NULL 
+for (s in 1:133) {
+  cuantil0975rec[s] = quantile(unlist(lapply(media_rbesper, function(x) x[s])), 0.975)
+}
+media_rbpredic = vector(mode = 'list', length = 500)
+for (j in 1:500){
+  media_rbpredic[[j]] = c(rep(NA, 50), media_rbesper[[j]])
+}
+
+pred_recuperado <- data.frame(c(rep((as.Date(dias_antes) + 3)[600:782], 500)), 
+                              rep(c(datos_recuperados[600:649], media_prediccrec), 500), 
+                              rep(c(datos_recuperados[600:649], rep(NA, 133)), 500), 
+                              unlist(media_rbpredic), 
+                              marcas, 
+                              rep(c(datos_recuperados[600:649], cuantil0025rec), 500), 
+                              rep(c(datos_recuperados[600:649], cuantil0975rec), 500))
+poligonorec = data.frame(x = c((as.Date(dias_antes) + 3)[650:782], 
+                               (as.Date(dias_antes) + 3)[782:650]), 
+                         y = c(cuantil0025rec[1:133], cuantil0975rec[133:1]))
+plot(poligonorec)
+ggplot(data = poligonorec) + 
+  geom_polygon(aes(x = poligonorec[, 1], 
+                   y = poligonorec[, 2]), colour = "transparent", fill = "blue")
+View(pred_infectados)
+names(pred_recuperado) = c("Fecha", "Suavizado", "Datos", "Prediccion", "marcas")
+
+colores_estocasticos = c("Datos" = "#698B69", 
+                         "Valor\n esperado" = "#2F4F4F", 
+                         "Estimación\n estocástica" = "#7FFFD4", 
+                         "Cuantil\n 2.5 %" = "#008B00", 
+                         "Cuantil\n 97.5 %" = "#008B00")
+library(ggplot2)
+ggpred_recuperados = ggplot(data = pred_recuperado) + 
+  geom_line(data = pred_recuperado, aes(x = pred_recuperado[, 1], 
+                                        y = pred_recuperado[, 4], group = marcas, 
+                                        color = "Estimación\n estocástica"), linewidth = 0.5) + 
+  geom_polygon(data = poligonorec, aes(x = poligonorec[, 1], 
+                                       y = poligonorec[, 2]), colour = "transparent", fill = "#66CDAA") +
+  geom_point(aes(x = pred_recuperado[, 1], y = pred_recuperado[, 3], color = "Datos"),
+             size = 1) + 
+  geom_line(data = pred_recuperado, aes(x = pred_recuperado[, 1], 
+                                        y = pred_recuperado[, 2], group = marcas, 
+                                        color = "Valor\n esperado"), linewidth = 1) +
+  geom_line(data = pred_recuperado, aes(x = pred_recuperado[, 1], 
+                                        y = pred_recuperado[, 6], group = marcas, 
+                                        color = "Cuantil\n 2.5 %"), linewidth = 0.5, 
+            linetype = "dotted") + 
+  geom_line(data = pred_recuperado, aes(x = pred_recuperado[, 1], 
+                                        y = pred_recuperado[, 7], group = marcas, 
+                                        color = "Cuantil\n 97.5 %"), linewidth = 0.5, 
+            linetype = "dotted") + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de recuperados')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  scale_color_manual(values = colores_estocasticos, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('dashed', "dashed",
+                                                              "blank", "solid", "solid"), 
+                                                 shape = c(NA, NA, 20, NA, NA)))) + 
+  theme(legend.position = "bottom") 
+ggpred_recuperados
+
+media_prediccsus = NULL 
+for (s in 1:133) {
+  media_prediccsus[s] = mean(unlist(lapply(media_sbesper, function(x) x[s])))
+}
+cuantil0025sus = NULL 
+for (s in 1:133) {
+  cuantil0025sus[s] = quantile(unlist(lapply(media_sbesper, function(x) x[s])), 0.025)
+} 
+cuantil0975sus = NULL 
+for (s in 1:133) {
+  cuantil0975sus[s] = quantile(unlist(lapply(media_sbesper, function(x) x[s])), 0.975)
+}
+media_sbpredic = vector(mode = 'list', length = 500)
+for (j in 1:500){
+  media_sbpredic[[j]] = c(rep(NA, 50), media_sbesper[[j]])
+}
+
+pred_susceptibles <- data.frame(c(rep((as.Date(dias_antes) + 3)[600:782], 500)), 
+                              rep(c(datos_susceptibles[600:649], media_prediccsus), 500), 
+                              rep(c(datos_susceptibles[600:649], rep(NA, 133)), 500), 
+                              unlist(media_sbpredic), 
+                              marcas, 
+                              rep(c(datos_susceptibles[600:649], cuantil0025sus), 500), 
+                              rep(c(datos_susceptibles[600:649], cuantil0975sus), 500))
+poligonosus = data.frame(x = c((as.Date(dias_antes) + 3)[650:782], 
+                               (as.Date(dias_antes) + 3)[782:650]), 
+                         y = c(cuantil0025sus[1:133], cuantil0975sus[133:1]))
+plot(poligonosus)
+ggplot(data = poligonosus) + 
+  geom_polygon(aes(x = poligonosus[, 1], 
+                   y = poligonosus[, 2]), colour = "transparent", fill = "blue")
+View(pred_infectados)
+names(pred_susceptibles) = c("Fecha", "Suavizado", "Datos", "Prediccion", "marcas")
+
+colores_estocasticos = c("Datos" = "slateblue2", 
+                         "Valor\n esperado" = "royalblue4", 
+                         "Estimación\n estocástica" = "lightblue1", 
+                         "Cuantil\n 2.5 %" = "steelblue", 
+                         "Cuantil\n 97.5 %" = "steelblue")
+library(ggplot2)
+ggpred_susceptibles = ggplot(data = pred_susceptibles) + 
+  geom_line(data = pred_susceptibles, aes(x = pred_susceptibles[, 1], 
+                                        y = pred_susceptibles[, 4], group = marcas, 
+                                        color = "Estimación\n estocástica"), linewidth = 0.5) + 
+  geom_polygon(data = poligonosus, aes(x = poligonosus[, 1], 
+                                       y = poligonosus[, 2]), colour = "transparent", fill = "#66CDAA") +
+  geom_point(aes(x = pred_susceptibles[, 1], y = pred_susceptibles[, 3], color = "Datos"),
+             size = 1) + 
+  geom_line(data = pred_susceptibles, aes(x = pred_susceptibles[, 1], 
+                                        y = pred_susceptibles[, 2], group = marcas, 
+                                        color = "Valor\n esperado"), linewidth = 1) +
+  geom_line(data = pred_susceptibles, aes(x = pred_susceptibles[, 1], 
+                                        y = pred_susceptibles[, 6], group = marcas, 
+                                        color = "Cuantil\n 2.5 %"), linewidth = 0.5, 
+            linetype = "dotted") + 
+  geom_line(data = pred_susceptibles, aes(x = pred_susceptibles[, 1], 
+                                        y = pred_susceptibles[, 7], group = marcas, 
+                                        color = "Cuantil\n 97.5 %"), linewidth = 0.5, 
+            linetype = "dotted") + 
+  labs(x = 'Tiempo (Semanas epidemiológicas)', y = 'Número de recuperados')  + 
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") + 
+  scale_color_manual(values = colores_estocasticos, name = "", 
+                     guide = guide_legend(nrow = 1, override.aes = 
+                                            list(linetype = c('dashed', "dashed",
+                                                              "blank", "solid", "solid"), 
+                                                 shape = c(NA, NA, 20, NA, NA)))) + 
+  theme(legend.position = "bottom") 
+ggpred_susceptibles
+
+## Tomando los valores de betaS para la serie 
+
+library(TSA)
+periodogram(ts(actu_betas[1:649]), xlab = "Frecuencia", ylab = "Periodograma", 
+            las =2, cex.axis = 0.8)
+abline(v = 0.019, lwd = 2, col = "purple")
+S = 1/0.019
+library(forecast)
+ndiffs(ts(actu_betas[1:649]))
+
+Tsay.test(ts(actu_betas[1:649])) # p = 3
+orden_q_betas = NULL 
+for (i in 0:4) { # q = 4
+  orden_q_betas[(i+1)] = logLik(arima(ts(actu_betas[1:649]),
+                                  order = c(3, 0, i), 
+                                  seasonal = list(order = c(0, 0, 0), 
+                                                  period = 53)))
+}
+max(orden_q_betas)
+
+matriz_beta_1betas = matrix(0, ncol = 4, nrow = 4)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_1betas[i+1,j+1] = logLik(arima(ts(actu_betas[1:649]),
+                                               order = c(3, 1, 4), 
+                                               seasonal = list(order = c(i, 0, j), 
+                                                               period = 53)))}}
+matriz_beta_1betas # P = 0, D = 0, Q = 2
+max(matriz_beta_1betas)
+
+matriz_beta_2betas = matrix(0, ncol = 4, nrow = 4)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_2betas[i+1,j+1] = logLik(arima(ts(actu_betas[1:649]),
+                                               order = c(3, 1, 4), 
+                                               seasonal = list(order = c(i, 1, j), 
+                                                               period = 53)))}}
+matriz_beta_2betas # P = 0, D = 1, Q = 1
+max(matriz_beta_2betas)
+
+matriz_beta_3betas = matrix(0, ncol = 4, nrow = 4)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_3betas[i+1,j+1] = logLik(arima(ts(actu_betas[1:649]),
+                                               order = c(3, 1, 4), 
+                                               seasonal = list(order = c(i, 2, j), 
+                                                               period = 53)))}}
+matriz_beta_3betas # P = 0, D = 1, Q = 2
+max(matriz_beta_3betas)
+
+matriz_beta_4betas = matrix(0, ncol = 4, nrow = 4)
+for (i in 0:3) {
+  for (j in 0:3) {
+    matriz_beta_4betas[i+1,j+1] = logLik(arima(ts(actu_betas[1:649]),
+                                               order = c(3, 1, 4), 
+                                               seasonal = list(order = c(i, 3, j), 
+                                                               period = 53)))}}
+matriz_beta_4betas # P = 0, D = 0, Q = 3
+max(matriz_beta_4betas)
+max(matriz_beta_1betas, matriz_beta_2betas, 
+    matriz_beta_3betas, matriz_beta_4betas)
+
+ajuste_bS = arima(ts(actu_betas[1:649]), order = c(3, 1, 4), 
+                  seasonal = list(order = c(0, 0, 2), period = 53))
+pronostico_betaS = forecast(ajuste_bS, h = 300)
+pronostico_betaS
+plot(data.frame(pronostico_betaS)[,1])
+
+media_sbesperSB = vector(mode = 'list', length = 200)
+media_ibesperSB = vector(mode = 'list', length = 200)
+media_rbesperSB = vector(mode = 'list', length = 200)
+for (j in 1:200) {
+  media_sbesperSB[[j]][1] = datos_susceptibles[649] # Dato último dato de predicción
+  media_ibesperSB[[j]][1] = sua_datos_mod_SIRSEIR_df[649,1] # Dato último dato de predicción
+  media_rbesperSB[[j]][1] = datos_recuperados[649] # Dato último dato de predicción
+}
+for (j in 1:200) {
+  for (k in 2:133) {
+    media_sbesperSB[[j]][k] = media_sbesperSB[[j]][(k-1)] + delta_pob1[(k+649)] -
+      pronostico_betaS$mean[(k-1)]*media_ibesperSB[[j]][(k-1)] -
+      actu_mu[(k+649)]*media_sbesperSB[[j]][(k-1)] - 
+      sqrt(abs(sigma_1f))*media_ibesperSB[[j]][(k-1)]*media_sbesperSB[[j]][(k-1)]*rnorm(1, mean = 0, sd = 1)
+    media_ibesperSB[[j]][k] = media_ibesperSB[[j]][(k-1)] +
+      pronostico_beta$mean[(k-1)]*media_ibesperSB[[j]][(k-1)] -
+      (1/5.2)*media_ibesperSB[[j]][(k-1)] - actu_mu[(k+649)]*media_ibesperSB[[j]][(k-1)] + 
+      sqrt(abs(sigma_1f))*media_ibesperSB[[j]][(k-1)]*media_sbesperSB[[j]][(k-1)]*rnorm(1, mean = 0, sd = 1) -
+      sqrt(sigma_2f)*media_ibesperSB[[j]][(k-1)]*rnorm(1, mean = 0, sd = 1)
+    media_rbesperSB[[j]][k] = media_rbesperSB[[j]][(k-1)] +
+      (1/5.2)*media_ibesperSB[[j]][(k-1)] - actu_mu[(k+649)]*media_rbesperSB[[j]][(k-1)] +
+      sqrt(sigma_2f)*media_ibesperSB[[j]][(k-1)]*rnorm(1, mean = 0, sd = 1)
+  }
+}
+
+minimoSB = NULL
+for (s in 1:133) {
+  minimoSB[s] = min(unlist(lapply(media_ibesperSB, function(x) x[s])))
+}
+maximoSB = NULL
+for (s in 1:133) {
+  maximoSB[s] = max(unlist(lapply(media_ibesperSB, function(x) x[s])))
+}
+
+media_prediccionSB = NULL 
+for (s in 1:133) {
+  media_prediccionSB[s] = mean(unlist(lapply(media_ibesperSB, function(x) x[s])))
+}
+plot(media_prediccionSB)
+
+pred_infectados[58, ] # 58 para infectados pico 
+pred_infectados[147, ] # 147 para infectados pico
+pred_infectados[98, ] # 98 para infectado valle 
+
+pred_susceptibles[133, 1] # Susceptibles pico
+pred_susceptibles[168, ] # susceptibles valle
+pred_susceptibles[74, 1] # susceptibles valle
+
+pred_recuperado[78, 1] # recuperados pico
+pred_recuperado[166, 1] # recuperados pico
+pred_recuperado[145, 1] # recuperados valle
+
+pred_susceptibles[c(58, 74, 78, 98, 133, 145, 147, 166, 
+                    168, 183), c(1, 4, 6, 7)]
+pred_infectados[c(58, 74, 78, 98, 133, 145, 147, 166, 
+                  168, 183), c(1, 4, 6, 7)]
+pred_recuperado[c(58, 74, 78, 98, 133, 145, 147, 166, 
+                  168, 183), c(1, 4, 6, 7)]
