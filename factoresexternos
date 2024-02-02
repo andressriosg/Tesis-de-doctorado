@@ -1,0 +1,428 @@
+## Datos de PM2.5 
+
+PM25 = data.frame(OAB_PM2_5PME_La_Ciudad)
+for (i in 2:ncol(PM25)){
+  PM25[,i] = replace(PM25[,i], which(PM25[,i] == "N/A"), values = NA)
+}
+matriz_25 = as.matrix(PM25[, 2:ncol(PM25)])
+plot(matriz_25[,1])
+
+library(zoo)
+meses_25 = as.yearmon(as.character(PM25[,1]), "%Y-%m")
+datos_pm25 = cbind(as.character(as.Date(meses_25)), matriz_25)
+for (i in 2:ncol(datos_pm25)){
+  datos_pm25[, i] = as.numeric(datos_pm25[, i])
+}
+
+plot(as.Date(datos_pm25[,1]), datos_pm25[,2])
+
+Estaciones = c(rep("Movilidad 1", nrow(datos_pm25)), 
+               rep("Ciudad Bolivar", nrow(datos_pm25)), 
+               rep("Ministerio de Ambiente", nrow(datos_pm25)), 
+               rep("Jazmin", nrow(datos_pm25)), 
+               rep("Puente Aranda", nrow(datos_pm25)), 
+               rep("Movilidad 2", nrow(datos_pm25)), 
+               rep("San Cristobal", nrow(datos_pm25)), 
+               rep("Carvajal", nrow(datos_pm25)), 
+               rep("Usme", nrow(datos_pm25)), 
+               rep("Suba", nrow(datos_pm25)), 
+               rep("Alto Rendimiento", nrow(datos_pm25)), 
+               rep("Bolivia", nrow(datos_pm25)), 
+               rep("Tunal", nrow(datos_pm25)), 
+               rep("Fontibon", nrow(datos_pm25)), 
+               rep("Usaquen", nrow(datos_pm25)), 
+               rep("Guaymaral", nrow(datos_pm25)), 
+               rep("Bosa", nrow(datos_pm25)), 
+               rep("Colina", nrow(datos_pm25)), 
+               rep("Kennedy", nrow(datos_pm25)), 
+               rep("Las Ferias", nrow(datos_pm25)))
+datos_pm25final = data.frame(fecha = rep(as.Date(datos_pm25[,1]), 20), 
+                             pm25 = as.numeric(c(datos_pm25[, 2:ncol(datos_pm25)])), 
+                             Estaciones)
+library(ggplot2)
+grafica_pm25 <- ggplot(data = datos_pm25final, 
+                       aes(x = fecha, y = pm25, 
+                           group = Estaciones, colour = Estaciones)) + 
+  geom_line(linewidth = 1) + 
+  guides(col = guide_legend(ncol=2)) +
+  labs(x = 'Fecha', y = 'PM 2.5') + 
+  scale_x_date(date_breaks = "12 months", date_labels = "%Y")
+
+# Imputacion de datos de PM25 
+
+length((as.Date(dias_antes) + 3)[199:660]) # 462 sem epidemiologicas a imputar
+ultima_epiext = c("2013-10-26", "2013-11-30", "2013-12-28", "2014-01-25", 
+                  "2014-03-01", "2014-03-29", "2014-04-26", "2014-05-31", 
+                  "2014-06-28", "2014-07-26", "2014-08-30", "2014-09-27", 
+                  "2014-10-25", "2014-11-29", "2014-12-27", "2015-01-31", 
+                  "2015-02-28", "2015-03-28", "2015-04-25", "2015-05-30", 
+                  "2015-06-27", "2015-07-25", "2015-08-29", "2015-09-26", 
+                  "2015-10-31", "2015-11-28", "2015-12-26", "2016-01-30", 
+                  "2016-02-27", "2016-03-26", "2016-04-30", "2016-05-28", 
+                  "2016-06-25", "2016-07-30", "2016-08-27", "2016-10-01", 
+                  "2016-10-29", "2016-11-26", "2016-12-31", "2017-01-28", 
+                  "2017-02-25", "2017-03-25", "2017-04-29", "2017-05-27", 
+                  "2017-07-01", "2017-07-29", "2017-08-26", "2017-09-30", 
+                  "2017-10-28", "2017-11-25", "2017-12-30", "2018-01-27", 
+                  "2018-02-24", "2018-03-31", "2018-04-28", "2018-05-26", 
+                  "2018-06-30", "2018-07-28", "2018-08-25", "2018-09-29", 
+                  "2018-10-27", "2018-12-01", "2018-12-29", "2019-01-26", 
+                  "2019-02-23", "2019-03-30", "2019-04-27", "2019-05-25", 
+                  "2019-06-29", "2019-07-27", "2019-08-31", "2019-09-28", 
+                  "2019-10-26", "2019-11-30", "2019-12-28", "2020-01-25", 
+                  "2020-02-29", "2020-03-28", "2020-04-25", "2020-05-30", 
+                  "2020-06-27", "2020-07-25", "2020-08-29", "2020-09-26", 
+                  "2020-10-31", "2020-11-28", "2020-12-26", "2021-01-30", 
+                  "2021-02-27", "2021-03-27", "2021-05-01", "2021-05-29", 
+                  "2021-06-26", "2021-07-31", "2021-08-28", "2021-09-25", 
+                  "2021-10-30", "2021-11-27", "2021-12-25", "2022-01-29", 
+                  "2022-02-26", "2022-03-26", "2022-04-30", "2022-05-28", 
+                  "2022-06-25", "2022-07-30", "2022-08-27", 
+                  rep(NA, 119-107)) # Ultimo dato de IRA: 18 de junio de 2022
+
+datos_pm25final1 = data.frame(fech_epi = rep(as.Date(ultima_epiext), 20), 
+                              fecha = rep(as.Date(datos_pm25[,1]), 20), 
+                              pm25 = as.numeric(c(datos_pm25[, 2:ncol(datos_pm25)])), 
+                              Estaciones)
+tail(datos_pm25final1)
+tabla_estacionpm25 = list()
+for (k in 1:20){
+  tabla_estacionpm25[[k]] = data.frame(na.omit(datos_pm25final1[((k-1)*119 + 1):
+                                                                  (((k-1)*119)+ 107),]))
+}
+datos_pm25final1[1905:2011,] # Bosa no tienes datos 
+
+sem_epi_estacion = NULL
+for (i in c(1:16, 18:20)){
+  sem_epi_estacion[i] = length(seq(as.Date(tabla_estacionpm25[[i]][1, 1]), 
+                                   as.Date(tabla_estacionpm25[[i]][nrow(tabla_estacionpm25[[i]]), 1]), 
+                                   by = "week"))
+}
+
+library(npregfast)
+imputa_estacionpm25 = list()
+for (i in c(1:16, 18:20)){
+  imputa_estacionpm25[[i]] = data.frame(frfast(tabla_estacionpm25[[i]][,3] ~ 
+                                                 tabla_estacionpm25[[i]][,1], 
+                                               model = "np", smooth = "kernel", 
+                                               kbin = sem_epi_estacion[i], p =3)$p)[,1]
+}
+plot(tabla_estacionpm25[[5]][,1], tabla_estacionpm25[[5]][,3], pch = 20)
+points(seq(as.Date(tabla_estacionpm25[[5]][1, 1]), 
+           as.Date(tabla_estacionpm25[[5]][nrow(tabla_estacionpm25[[5]]), 1]),
+           by = "week"), imputa_estacionpm25[[5]], pch = 20, cex = 0.4)
+
+semanas_datos_pm25 = seq(as.Date("2013-10-26"), as.Date("2022-08-27"),
+                         by = "week")
+Estaciones22 = c(rep("Movilidad 1", length(semanas_datos_pm25)), 
+                 rep("Ciudad Bolivar", length(semanas_datos_pm25)), 
+                 rep("Ministerio de Ambiente", length(semanas_datos_pm25)), 
+                 rep("Jazmin", length(semanas_datos_pm25)), 
+                 rep("Puente Aranda", length(semanas_datos_pm25)), 
+                 rep("Movilidad 2", length(semanas_datos_pm25)), 
+                 rep("San Cristobal", length(semanas_datos_pm25)), 
+                 rep("Carvajal", length(semanas_datos_pm25)), 
+                 rep("Usme", length(semanas_datos_pm25)), 
+                 rep("Suba", length(semanas_datos_pm25)), 
+                 rep("Alto Rendimiento", length(semanas_datos_pm25)), 
+                 rep("Bolivia", length(semanas_datos_pm25)), 
+                 rep("Tunal", length(semanas_datos_pm25)), 
+                 rep("Fontibon", length(semanas_datos_pm25)), 
+                 rep("Usaquen", length(semanas_datos_pm25)), 
+                 rep("Guaymaral", length(semanas_datos_pm25)), 
+                 rep("Bosa", length(semanas_datos_pm25)), 
+                 rep("Colina", length(semanas_datos_pm25)), 
+                 rep("Kennedy", length(semanas_datos_pm25)), 
+                 rep("Las Ferias", length(semanas_datos_pm25)))
+media_pm25 = NULL 
+w = list()
+for (j in 1:length(semanas_datos_pm25)){
+  w[[j]] = seq((length(semanas_datos_pm25)*0 + j), 
+               (length(semanas_datos_pm25)*20), 
+               by = length(semanas_datos_pm25))
+  media_pm25[j] = mean(na.omit(datos_pm25fin[w[[j]], 3]))
+}
+datos_pm25fin = data.frame(fecha = rep(semanas_datos_pm25, 20), datospm25 = NA, 
+                           imputacion = NA, Estaciones = Estaciones22, 
+                           Media = rep(media_pm25, 20))
+m = NULL
+for (k in 1:20){
+  m[k] = ((k-1)*462 + 1)
+  datos_pm25fin[m[k]:(k*(462)),2] = replace(datos_pm25fin[m[k]:(k*(462)),2], 
+                                            list = which(datos_pm25fin[m[k]:(k*(462)),1] %in% tabla_estacionpm25[[k]][,1]), 
+                                            values = tabla_estacionpm25[[k]][,3])
+}
+
+for (k in c(1:16, 18:20)){
+  datos_pm25fin[m[k]:(k*(462)),3] = replace(datos_pm25fin[m[k]:(k*(462)),3], 
+                                            list = which(datos_pm25fin[m[k]:(k*(462)),1] %in% seq(as.Date(tabla_estacionpm25[[k]][1, 1]), 
+                                                                                                  as.Date(tabla_estacionpm25[[k]][nrow(tabla_estacionpm25[[k]]), 1]), 
+                                                                                                  by = "week")), 
+                                            values = imputa_estacionpm25[[k]])
+}
+
+plot(datos_pm25fin[,1], datos_pm25fin[,3], type = "l", lwd = 2)
+points(datos_pm25fin[,1], datos_pm25fin[,2], pch = 20, cex = 0.4)
+
+library(ggplot2)
+imputa_pm25 <- ggplot(data = datos_pm25fin, 
+                      aes(x = fecha, y = imputacion, 
+                          group = Estaciones, colour = Estaciones)) + 
+  geom_line(linewidth = 1) + 
+  geom_point(data = datos_pm25fin, aes(x = fecha, y = datospm25, 
+                                       group = Estaciones, colour = Estaciones), 
+             size = 1.2) + 
+  geom_line(data = datos_pm25fin, aes(x = fecha, y = Media), 
+            linewidth = 1.4, color = "red4") + 
+  guides(col = guide_legend(ncol=2)) +
+  labs(x = 'Fecha', y = 'PM 2.5') + 
+  scale_x_date(date_breaks = "12 months", date_labels = "%Y")
+
+## Datos de PM10 
+
+PM10 = data.frame(OAB_PM10PME_La_Ciudad)
+for (i in 2:ncol(PM10)){
+  PM10[,i] = replace(PM10[,i], which(PM10[,i] == "N/A"), values = NA)
+}
+matriz_10 = as.matrix(PM10[, 2:ncol(PM10)])
+plot(matriz_10[,1])
+
+library(zoo)
+meses_10 = as.yearmon(as.character(PM10[,1]), "%Y-%m")
+datos_pm10 = cbind(as.character(as.Date(meses_10)), matriz_10)
+for (i in 2:ncol(datos_pm10)){
+  datos_pm10[, i] = as.numeric(datos_pm10[, i])
+}
+plot(as.Date(datos_pm10[,1]), datos_pm10[,2])
+Estaciones2 = c(rep("Carvajal", nrow(datos_pm10)), 
+               rep("Movilidad 2", nrow(datos_pm10)), 
+               rep("Suba", nrow(datos_pm10)), 
+               rep("Usme", nrow(datos_pm10)), 
+               rep("Alto Rendimiento", nrow(datos_pm10)), 
+               rep("Tunal", nrow(datos_pm10)), 
+               rep("Fontibon", nrow(datos_pm10)), 
+               rep("Usaquen", nrow(datos_pm10)), 
+               rep("Guaymaral", nrow(datos_pm10)), 
+               rep("Kennedy", nrow(datos_pm10)), 
+               rep("Las Ferias", nrow(datos_pm10)), 
+               rep("Ministerio Ambiente", nrow(datos_pm10)), 
+               rep("Puente Aranda", nrow(datos_pm10)), 
+               rep("Ciudad Bolivar", nrow(datos_pm10)), 
+               rep("Jazmin", nrow(datos_pm10)), 
+               rep("Bolivia", nrow(datos_pm10)), 
+               rep("Bosa", nrow(datos_pm10)), 
+               rep("Colina", nrow(datos_pm10)),
+               rep("San Cristobal", nrow(datos_pm10)),
+               rep("Movilidad 1", nrow(datos_pm10)))
+datos_pm10final = data.frame(fecha = rep(as.Date(datos_pm10[,1]), 20), 
+                             pm10 = as.numeric(c(datos_pm10[, 2:ncol(datos_pm10)])), 
+                             Estaciones = Estaciones2)
+library(ggplot2)
+grafica_pm10 <- ggplot(data = datos_pm10final, 
+                       aes(x = fecha, y = pm10, 
+                           group = Estaciones, colour = Estaciones)) + 
+  geom_line(linewidth = 1) + 
+  guides(col = guide_legend(ncol=2)) +
+  labs(x = 'Fecha', y = 'PM 10') + 
+  scale_x_date(date_breaks = "12 months", date_labels = "%Y")
+
+# Imputacion de datos de PM10
+length(which(as.Date(datos_pm25[,1]) %in% as.Date(datos_pm10[,1])))
+matrizNA = matrix(NA, ncol = 20, nrow = 3)
+datos_pm10tabla = rbind(matrizNA, datos_pm10[1:116, 2:ncol(datos_pm10)])
+Estaciones3 = c(rep("Carvajal", length(ultima_epiext)), 
+                rep("Movilidad 2", length(ultima_epiext)), 
+                rep("Suba", length(ultima_epiext)), 
+                rep("Usme", length(ultima_epiext)), 
+                rep("Alto Rendimiento", length(ultima_epiext)), 
+                rep("Tunal", length(ultima_epiext)), 
+                rep("Fontibon", length(ultima_epiext)), 
+                rep("Usaquen", length(ultima_epiext)), 
+                rep("Guaymaral", length(ultima_epiext)), 
+                rep("Kennedy", length(ultima_epiext)), 
+                rep("Las Ferias", length(ultima_epiext)), 
+                rep("Ministerio Ambiente", length(ultima_epiext)), 
+                rep("Puente Aranda", length(ultima_epiext)), 
+                rep("Ciudad Bolivar", length(ultima_epiext)), 
+                rep("Jazmin", length(ultima_epiext)), 
+                rep("Bolivia", length(ultima_epiext)), 
+                rep("Bosa", length(ultima_epiext)), 
+                rep("Colina", length(ultima_epiext)),
+                rep("San Cristobal", length(ultima_epiext)),
+                rep("Movilidad 1", length(ultima_epiext)))
+
+datos_pm10final1 = data.frame(fech_epi = rep(ultima_epiext, 20), 
+                              fecha = rep(c(rep(NA, 3), datos_pm10[1:116,1]), 20), 
+                              pm10 = as.numeric(c(datos_pm10tabla)), 
+                              Estacion = Estaciones3)
+tail(datos_pm10final1)
+tabla_estacionpm10 = list()
+for (k in 1:20){
+  tabla_estacionpm10[[k]] = data.frame(na.omit(datos_pm10final1[((k-1)*119 + 1):
+                                                                  (((k-1)*119)+ 107),]))
+}
+datos_pm25final1[1905:2011,] # Bosa no tienes datos 
+
+sem_epi_estacion10 = NULL
+for (i in c(1:16, 18:20)){
+  sem_epi_estacion10[i] = length(seq(as.Date(tabla_estacionpm10[[i]][1, 1]), 
+                                     as.Date(tabla_estacionpm10[[i]][nrow(tabla_estacionpm10[[i]]), 1]), 
+                                     by = "week"))
+}
+
+library(npregfast)
+imputa_estacionpm10 = list()
+for (i in c(1:16, 18:20)){
+  imputa_estacionpm10[[i]] = data.frame(frfast(tabla_estacionpm10[[i]][,3] ~ 
+                                                 as.Date(tabla_estacionpm10[[i]][,1]), 
+                                               model = "np", smooth = "kernel", 
+                                               kbin = sem_epi_estacion10[i], p =3)$p)[,1]
+}
+plot(as.Date(tabla_estacionpm10[[5]][,1]), tabla_estacionpm10[[5]][,3], pch = 20)
+points(seq(as.Date(tabla_estacionpm10[[5]][1, 1]), 
+           as.Date(tabla_estacionpm10[[5]][nrow(tabla_estacionpm10[[5]]), 1]),
+           by = "week"), imputa_estacionpm10[[5]], pch = 20, cex = 0.4)
+
+semanas_datos_pm10 = seq(as.Date("2013-10-26"), as.Date("2022-08-27"),
+                         by = "week")
+Estaciones4 = c(rep("Carvajal", length(semanas_datos_pm10)), 
+                rep("Movilidad 2", length(semanas_datos_pm10)), 
+                rep("Suba", length(semanas_datos_pm10)), 
+                rep("Usme", length(semanas_datos_pm10)), 
+                rep("Alto Rendimiento", length(semanas_datos_pm10)), 
+                rep("Tunal", length(semanas_datos_pm10)), 
+                rep("Fontibon", length(semanas_datos_pm10)), 
+                rep("Usaquen", length(semanas_datos_pm10)), 
+                rep("Guaymaral", length(semanas_datos_pm10)), 
+                rep("Kennedy", length(semanas_datos_pm10)), 
+                rep("Las Ferias", length(semanas_datos_pm10)), 
+                rep("Ministerio Ambiente", length(semanas_datos_pm10)), 
+                rep("Puente Aranda", length(semanas_datos_pm10)), 
+                rep("Ciudad Bolivar", length(semanas_datos_pm10)), 
+                rep("Jazmin", length(semanas_datos_pm10)), 
+                rep("Bolivia", length(semanas_datos_pm10)), 
+                rep("Bosa", length(semanas_datos_pm10)), 
+                rep("Colina", length(semanas_datos_pm10)),
+                rep("San Cristobal", length(semanas_datos_pm10)),
+                rep("Movilidad 1", length(semanas_datos_pm10)))
+media_pm10 = NULL
+r = list()
+for (j in 1:length(semanas_datos_pm10)){
+  r[[j]] = seq((length(semanas_datos_pm10)*0 + j), 
+               (length(semanas_datos_pm10)*20), 
+               by = length(semanas_datos_pm10))
+  media_pm10[j] = mean(na.omit(datos_pm10fin[r[[j]], 3]))
+}
+datos_pm10fin = data.frame(fecha = rep(semanas_datos_pm10, 20), 
+                           datospm10 = NA, 
+                           imputacion = NA, Estaciones = Estaciones4, 
+                           Media = rep(media_pm10, 20))
+s = NULL
+for (k in 1:20){
+  s[k] = ((k-1)*462 + 1)
+  datos_pm10fin[m[k]:(k*(462)),2] = replace(datos_pm10fin[s[k]:(k*(462)),2], 
+                                            list = which(datos_pm10fin[s[k]:(k*(462)),1] %in% tabla_estacionpm10[[k]][,1]), 
+                                            values = tabla_estacionpm10[[k]][,3])
+}
+
+for (k in c(1:16, 18:20)){
+  datos_pm10fin[m[k]:(k*(462)),3] = replace(datos_pm10fin[s[k]:(k*(462)),3], 
+                                            list = which(datos_pm10fin[s[k]:(k*(462)),1] %in% seq(as.Date(tabla_estacionpm10[[k]][1, 1]), 
+                                                                                                  as.Date(tabla_estacionpm10[[k]][nrow(tabla_estacionpm10[[k]]), 1]), 
+                                                                                                  by = "week")), 
+                                            values = imputa_estacionpm10[[k]])
+}
+
+plot(datos_pm10fin[,1], datos_pm10fin[,3], type = "l", lwd = 2)
+points(datos_pm10fin[,1], datos_pm10fin[,2], pch = 20, cex = 0.4)
+media_pm10 = NULL 
+
+library(ggplot2)
+imputa_pm10 <- ggplot(data = datos_pm10fin, 
+                      aes(x = fecha, y = imputacion, 
+                          group = Estaciones, colour = Estaciones)) + 
+  geom_line(linewidth = 1) + 
+  geom_point(data = datos_pm10fin, aes(x = fecha, y = datospm10, 
+                                       group = Estaciones, colour = Estaciones), 
+             size = 1.2) + 
+  geom_line(data = datos_pm10fin, aes(x = fecha, y = Media), 
+            linewidth = 1.4, color = "blue4") +
+  guides(col = guide_legend(ncol=2)) +
+  labs(x = 'Fecha', y = 'PM 10') + 
+  scale_x_date(date_breaks = "12 months", date_labels = "%Y")
+
+## Datos de temperatura 
+
+fechas_temp = seq(as.Date("01-01-2007", format="%d-%m-%Y"), as.Date("01-12-2022", format="%d-%m-%Y"), 
+                  by = "month")
+osb_temperatura = data.frame(osb_temperatura, fechas_temp)
+colnames(osb_temperatura) = c("Año", "Mes", "Máxima", "Mínima", "Temperatura promedio",
+                              "Época", "Fecha")
+tail(osb_temperatura)
+plot(osb_temperatura$Fecha, osb_temperatura$`Temperatura promedio`, type = "l", lwd = 2)
+
+library(ggplot2)
+gg_temperatura = ggplot(data = osb_temperatura, 
+                        aes(x = Fecha, y = `Temperatura promedio`, 
+                            color = Época)) + 
+  geom_line(aes(group = 1), linewidth = 1) +
+  geom_point(size = 1.5) + 
+  labs(x = 'Fecha', y = 'Temperatura promedio') + 
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y")
+
+tabla_temperatura = data.frame(as.Date(ultima_epiext[1:107]), 
+                               osb_temperatura$`Temperatura promedio`[82:188])
+library(npregfast)
+imputacion_temp = data.frame(frfast(tabla_temperatura[, 2] ~ tabla_temperatura[, 1], 
+                                    model = "np", smooth = "kernel", 
+                                    kbin = 462, p =3)$p)
+tabla_temperatura11 = data.frame(Fecha = (as.Date(dias_antes) + 3)[199:660], 
+                                 Imputación = imputacion_temp[,1], 
+                                 Derivada = imputacion_temp[,2])
+
+library(ggplot2)
+gg_temperaturaimpu = ggplot(data = osb_temperatura, 
+                            aes(x = Fecha, y = `Temperatura promedio`, 
+                            color = Época)) + 
+  geom_line(aes(group = 1), linewidth = 1) +
+  geom_point(size = 2) + 
+  geom_line(data = tabla_temperatura11, aes(x = Fecha, y = Imputación), linewidth = 1.5, 
+            colour = "maroon4") + 
+  labs(x = 'Fecha', y = 'Temperatura promedio') + 
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y")
+
+gg_temperaturaderi = ggplot(data = tabla_temperatura11, 
+                            aes(x = Fecha, y = Derivada)) + 
+  geom_line(linewidth = 1, colour = "#EEEE00") +
+  labs(x = 'Fecha', y = 'Derivada temperatura') + 
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y")
+
+factores_ext2 = (media_pm25 + media_pm10 + tabla_temperatura11$Derivada)^2
+sigma_ext =  8.517358e-08/factores_ext2 - 6.13459e-08/factores_ext2
+plot(sigma_ext, lwd =2, type = "l")
+
+epoca_temp = NULL 
+epoca_temp[which((as.Date(dias_antes) + 3)[199:660] %in% tabla_temperatura$as.Date.ultima_epiext.1.107..)] = 
+  osb_temperatura$Época[82:188]
+epoca_temp[1:57] = "Neutro"
+epoca_temp[58:139] = "Niño"
+epoca_temp[140:148] = "Neutro"
+epoca_temp[149:170] = "Niña"
+epoca_temp[171:209] = "Neutro"
+epoca_temp[210:235] = "Niña"
+epoca_temp[236:261] = "Neutro"
+epoca_temp[262:300] = "Niño"
+epoca_temp[300:374] = "Neutro"
+epoca_temp[375:400] = "Niña"
+epoca_temp[401:409] = "Neutro"
+epoca_temp[410:462] = "Niña"
+
+datos_factorext = data.frame(Fecha = (as.Date(dias_antes) + 3)[199:660], 
+                             volatilidad = sigma_ext, Época = epoca_temp)
+
+gg_volatilidadext = ggplot(data = datos_factorext, 
+                           aes(x = Fecha, y = volatilidad)) + 
+  geom_line(aes(group = 1, color = Época), linewidth = 1) +
+  geom_smooth(method='lm', se=FALSE, linewidth = 1, linetype = "dashed") +
+  labs(x = 'Fecha', y = 'Volatilidad Factores Externos') + 
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y") 
