@@ -222,6 +222,7 @@ imp_porcen = data.frame(frfast(porce_covid[,2]~porce_covid[,1],
                                model = "np", smooth = "kernel", p = 3, 
                                kbin = 285)$p)[,1]
 vac = imp_porcen/100
+var(vac)
 rho_covid = c(rep(0, 372), vac)
 covid_asisua = NULL 
 covid_asisua[1] = 0
@@ -333,3 +334,69 @@ grafica_R0covid <- ggplot(data = df_R0covid) +
             linewidth = 1, color = "violetred2") + 
   labs(x = 'fecha', y = expression(R[0]))  + 
   scale_x_date(date_breaks = "2 months", date_labels = "%b/%y")
+
+a = (covid_sussua[1:655]*covid_asisua[1:655] + covid_sussua[1:655]*covid_infsua[1:655])^2
+b = covid_sussua[1:655]^2
+c = covid_expsua[1:655]^2
+d = covid_infsua[1:655]^2
+e = covid_asisua[1:655]^2
+f = covid_hossua[1:655]^2
+z = 1/((2+14)/2)
+v_m = list()
+for (j in 1:655){
+  v_m[[j]] <- matrix(0, nrow = 10, ncol = 10)
+}
+for (j in 1:655){
+  v_m[[j]][1, ] = c(2*a[j], b[j], c[j], c[j], 0, 0, 0, 0, 0, 0) 
+  v_m[[j]][2, ] = c(a[j], 2*b[j], c[j], 0, 0, 0, 0, e[j], 0, 0) 
+  v_m[[j]][3, ] = c(a[j], b[j], 2*c[j], c[j], 0, 0, 0, e[j], 0, 0) 
+  v_m[[j]][4, ] = c(a[j], 0, 0, c[j]*(1+z^2+(1-z)^2), d[j], d[j], e[j], e[j], 0, 0) 
+  v_m[[j]][5, ] = c(0, 0, 0, c[j]*z^2, 2*d[j], d[j], e[j], 0, f[j], 0) 
+  v_m[[j]][6, ] = c(0, 0, 0, c[j]*z^2, d[j], 2*d[j], 0, 0, f[j], f[j]) 
+  v_m[[j]][7, ] = c(0, 0, 0, c[j]*(1-z)^2, d[j], 0, 2*e[j], e[j], f[j], 0)
+  v_m[[j]][8, ] = c(0, b[j], c[j], c[j]*(1-z)^2, 0, 0, e[j], 2*e[j], 0, 0) 
+  v_m[[j]][9, ] = c(0, 0, 0, 0, d[j], d[j], e[j], 0, 2*f[j], f[j]) 
+  v_m[[j]][10, ] = c(0, 0, 0, 0, 0, d[j], 0, 0, f[j], 2*f[j]) 
+}
+
+medcovidsus = covid_sussua[2:656] + lambda_covid[1:655] - beta_covid2[1:655]*(
+  covid_sussua[1:655]*covid_infsua[1:655] + covid_sussua[1:655]*covid_asisua[1:655]) - 
+  (rho_covid[1:655] + mu_epocovid[1:655])*covid_sussua[1:655]
+medcovidexp = covid_expsua[2:656] + beta_covid2[1:655]*(
+  covid_sussua[1:655]*covid_infsua[1:655] + covid_sussua[1:655]*covid_asisua[1:655]) - 
+  (rho_covid[1:655] + mu_epocovid[1:655] + zeta)*covid_expsua[1:655]
+medcovidinf = covid_infsua[2:656] + zeta*xi*covid_expsua[1:655] - (
+  eta_covid1[1:655]+ gamma_inf + mu_epocovid[1:655])*covid_infsua[1:655]
+medcovidasi = covid_asisua[2:656] + zeta*(1-xi)*covid_expsua[1:655] - (
+  rho_covid[1:655] + mu_epocovid[1:655] + gamma_a[1:655])*covid_asisua[1:655]
+medcovidhos = covid_hossua[2:656] + eta_covid1[1:655]*covid_infsua[2:656] - (
+  gamma_hosp + mu_epocovid[1:655] + mu_covid1[1:655])*covid_hossua[1:655]
+medcovidrec = covid_recsua[2:656] + gamma_inf*covid_infsua[1:655] + 
+  gamma_a[1:655]*covid_asisua[1:655] + gamma_hosp*covid_hossua[1:655] - 
+  mu_epocovid[1:655]*covid_recsua[1:655]
+medcovidvac = covid_vacsua[2:656] + rho_covid[1:655]*covid_sussua[1:655] + 
+  rho_covid[1:655]*covid_expsua[1:655] + rho_covid[1:655]*covid_asisua[1:655] - 
+  mu_epocovid[1:655]*covid_vacsua[1:655]
+medcovidmue = covid_falsua[2:656] - mu_covid1[1:655]*covid_hossua[1:655]
+
+g = (covid_sussua[1:655] - medcovidsus)^2
+h = (covid_expsua[1:655] - medcovidexp)^2
+i = (covid_infsua[1:655] - medcovidinf)^2
+j = (covid_asisua[1:655] - medcovidasi)^2
+k = (covid_hossua[1:655] - medcovidhos)^2
+l = (covid_recsua[1:655] - medcovidrec)^2
+m = (covid_vacsua[1:655] - medcovidvac)^2
+n = (covid_falsua[1:655] - medcovidmue)^2
+
+sol_covid = list()
+for (s in 2:655){
+  sol_covid[[s]] = solve(v_m[[s]])%*%
+    (c(g[s]+h[s], g[s]+m[s], h[s]+m[s], h[s]+i[s]+j[s], i[s]+l[s], i[s]+k[s], 
+       j[s]+l[s], j[s]+m[s], l[s]+k[s], k[s]+n[s]))    
+}
+
+esti_varianza_covid = NULL
+for (i in 1:10){
+  esti_varianza_covid[i] = mean(unlist(lapply(sol_covid, function(x) x[i])))
+}
+esti_varianza_covid
