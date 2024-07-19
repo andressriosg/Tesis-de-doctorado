@@ -53,10 +53,8 @@ verosimilitud[[1]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[1]], intervalos[[1]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[1]], 2]-out[,3])^2)/
                length(intervalos[[1]]))
-  - sum(dnorm(bd_estimacion[intervalos[[1]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[1]] <- mle2(verosimilitud[[1]], 
+ajuste_max[[1]] <- optim(verosimilitud[[1]], 
                         start=list(lbeta= 0.0000000095,
                                    lgamma= 0.00000001),  
                         method="BFGS",
@@ -81,10 +79,8 @@ verosimilitud[[2]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[2]], intervalos[[2]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[2]], 2]-out[,3])^2)/
                length(intervalos[[2]]))
-  - sum(dnorm(bd_estimacion[intervalos[[2]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[2]] <- mle2(verosimilitud[[2]], 
+ajuste_max[[2]] <- optim(verosimilitud[[2]], 
                         start=list(lbeta= 0.0000000095,
                                    lgamma= 0.04),  
                         method="BFGS",
@@ -105,10 +101,8 @@ verosimilitud[[3]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[3]], intervalos[[3]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[3]], 2]-out[,3])^2)/
                length(intervalos[[3]]))
-  - sum(dnorm(bd_estimacion[intervalos[[3]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[3]] <- mle2(verosimilitud[[3]], 
+ajuste_max[[3]] <- optim(verosimilitud[[3]], 
                         start=list(lbeta= 0.000000009,
                                    lgamma= 0.01),  
                         method="BFGS",
@@ -129,10 +123,8 @@ verosimilitud[[4]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[4]], intervalos[[4]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[4]], 2]-out[,3])^2)/
                length(intervalos[[4]]))
-  - sum(dnorm(bd_estimacion[intervalos[[4]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[4]] <- mle2(verosimilitud[[4]], 
+ajuste_max[[4]] <- optim(verosimilitud[[4]], 
                         start=list(lbeta= 0.00000000192,
                                    lgamma= 0.005),  
                         method="BFGS",
@@ -156,7 +148,7 @@ verosimilitud[[5]] <- function(lbeta, lgamma) {
   - sum(dnorm(bd_estimacion[intervalos[[5]], 2], mean=out[,3], 
               sd=SD, log=TRUE))
 }
-ajuste_max[[5]] <- mle2(verosimilitud[[5]], 
+ajuste_max[[5]] <- optim(verosimilitud[[5]], 
                         start=list(lbeta= 0.000000009985,
                                    lgamma= 0.005),  
                         method="BFGS",
@@ -177,10 +169,8 @@ verosimilitud[[6]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[6]], intervalos[[6]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[6]], 2]-out[,3])^2)/
                length(intervalos[[6]]))
-  - sum(dnorm(bd_estimacion[intervalos[[6]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[6]] <- mle2(verosimilitud[[6]], 
+ajuste_max[[6]] <- optim(verosimilitud[[6]], 
                         start=list(lbeta= 0.000000016,
                                    lgamma= 0.03),  
                         method="BFGS",
@@ -201,10 +191,8 @@ verosimilitud[[7]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[7]], intervalos[[7]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[7]], 2]-out[,3])^2)/
                length(intervalos[[7]]))
-  - sum(dnorm(bd_estimacion[intervalos[[7]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[7]] <- mle2(verosimilitud[[7]], 
+ajuste_max[[7]] <- optim(verosimilitud[[7]], 
                         start=list(lbeta= 0.00000001,
                                    lgamma= 0.00000001),  
                         method="BFGS",
@@ -225,10 +213,8 @@ verosimilitud[[8]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[8]], intervalos[[8]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[8]], 2]-out[,3])^2)/
                length(intervalos[[8]]))
-  - sum(dnorm(bd_estimacion[intervalos[[8]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[8]] <- mle2(verosimilitud[[8]], 
+ajuste_max[[8]] <- optim(verosimilitud[[8]], 
                         start=list(lbeta= 0.00000000085,
                                    lgamma= 0.0001),  
                         method="BFGS",
@@ -249,10 +235,8 @@ verosimilitud[[9]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[9]], intervalos[[9]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[9]], 2]-out[,3])^2)/
                length(intervalos[[9]]))
-  - sum(dnorm(bd_estimacion[intervalos[[9]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[9]] <- mle2(verosimilitud[[9]], 
+ajuste_max[[9]] <- optim(verosimilitud[[9]], 
                         start=list(lbeta= 0.00000001,
                                    lgamma= 0.00001),  
                         method="BFGS",
@@ -273,10 +257,8 @@ verosimilitud[[10]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[10]], intervalos[[10]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[10]], 2]-out[,3])^2)/
                length(intervalos[[10]]))
-  - sum(dnorm(bd_estimacion[intervalos[[10]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[10]] <- mle2(verosimilitud[[10]], 
+ajuste_max[[10]] <- optim(verosimilitud[[10]], 
                         start=list(lbeta= 0.0000000008,
                                    lgamma= 0.0001),  
                         method="BFGS",
@@ -297,10 +279,8 @@ verosimilitud[[11]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[11]], intervalos[[11]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[11]], 2]-out[,3])^2)/
                length(intervalos[[11]]))
-  - sum(dnorm(bd_estimacion[intervalos[[11]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[11]] <- mle2(verosimilitud[[11]], 
+ajuste_max[[11]] <- optim(verosimilitud[[11]], 
                          start=list(lbeta= 0.000000015,
                                     lgamma= 0.00001),  
                          method="BFGS",
@@ -321,10 +301,8 @@ verosimilitud[[12]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[12]], intervalos[[12]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[12]], 2]-out[,3])^2)/
                length(intervalos[[12]]))
-  - sum(dnorm(bd_estimacion[intervalos[[12]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[12]] <- mle2(verosimilitud[[12]], 
+ajuste_max[[12]] <- optim(verosimilitud[[12]], 
                          start=list(lbeta= 0.00000001,
                                     lgamma= 0.0015),  
                          method="BFGS",
@@ -345,10 +323,8 @@ verosimilitud[[13]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[13]], intervalos[[13]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[13]], 2]-out[,3])^2)/
                length(intervalos[[13]]))
-  - sum(dnorm(bd_estimacion[intervalos[[13]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[13]] <- mle2(verosimilitud[[13]], 
+ajuste_max[[13]] <- optim(verosimilitud[[13]], 
                          start=list(lbeta= 0.0000000015,
                                     lgamma= 0.0015),  
                          method="BFGS",
@@ -369,10 +345,8 @@ verosimilitud[[14]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[14]], intervalos[[14]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[14]], 2]-out[,3])^2)/
                length(intervalos[[14]]))
-  - sum(dnorm(bd_estimacion[intervalos[[14]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[14]] <- mle2(verosimilitud[[14]], 
+ajuste_max[[14]] <- optim(verosimilitud[[14]], 
                          start=list(lbeta= 0.0000000175,
                                     lgamma= 0.00032),  
                          method="BFGS",
@@ -393,10 +367,8 @@ verosimilitud[[15]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[15]], intervalos[[15]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[15]], 2]-out[,3])^2)/
                length(intervalos[[15]]))
-  - sum(dnorm(bd_estimacion[intervalos[[15]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[15]] <- mle2(verosimilitud[[15]], 
+ajuste_max[[15]] <- optim(verosimilitud[[15]], 
                          start=list(lbeta= 0.00000000455,
                                     lgamma= 0.00005),  
                          method="BFGS",
@@ -417,10 +389,8 @@ verosimilitud[[16]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[16]], intervalos[[16]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[16]], 2]-out[,3])^2)/
                length(intervalos[[16]]))
-  - sum(dnorm(bd_estimacion[intervalos[[16]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[16]] <- mle2(verosimilitud[[16]], 
+ajuste_max[[16]] <- optim(verosimilitud[[16]], 
                          start=list(lbeta= 0.00000000765,
                                     lgamma= 0.000005),  
                          method="BFGS",
@@ -441,10 +411,8 @@ verosimilitud[[17]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[17]], intervalos[[17]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[17]], 2]-out[,3])^2)/
                length(intervalos[[17]]))
-  - sum(dnorm(bd_estimacion[intervalos[[17]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[17]] <- mle2(verosimilitud[[17]], 
+ajuste_max[[17]] <- optim(verosimilitud[[17]], 
                          start=list(lbeta= 0.0000000075,
                                     lgamma= 0.000005),  
                          method="BFGS",
@@ -465,10 +433,8 @@ verosimilitud[[18]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[18]], intervalos[[18]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[18]], 2]-out[,3])^2)/
                length(intervalos[[18]]))
-  - sum(dnorm(bd_estimacion[intervalos[[18]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[18]] <- mle2(verosimilitud[[18]], 
+ajuste_max[[18]] <- optim(verosimilitud[[18]], 
                          start=list(lbeta= 0.000000032,
                                     lgamma= 0.0000005),  
                          method="BFGS",
@@ -489,10 +455,8 @@ verosimilitud[[19]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[19]], intervalos[[19]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[19]], 2]-out[,3])^2)/
                length(intervalos[[19]]))
-  - sum(dnorm(bd_estimacion[intervalos[[19]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[19]] <- mle2(verosimilitud[[19]], 
+ajuste_max[[19]] <- optim(verosimilitud[[19]], 
                          start=list(lbeta= 0.0000000315,
                                     lgamma= 0.000005),  
                          method="BFGS",
@@ -513,10 +477,8 @@ verosimilitud[[20]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[20]], intervalos[[20]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[20]], 2]-out[,3])^2)/
                length(intervalos[[20]]))
-  - sum(dnorm(bd_estimacion[intervalos[[20]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[20]] <- mle2(verosimilitud[[20]], 
+ajuste_max[[20]] <- optim(verosimilitud[[20]], 
                          start=list(lbeta= 0.00000002,
                                     lgamma= 0.0005),  
                          method="BFGS",
@@ -540,7 +502,7 @@ verosimilitud[[21]] <- function(lbeta, lgamma) {
   - sum(dnorm(bd_estimacion[intervalos[[21]], 2], mean=out[,3], 
               sd=SD, log=TRUE))
 }
-ajuste_max[[21]] <- mle2(verosimilitud[[21]], 
+ajuste_max[[21]] <- optim(verosimilitud[[21]], 
                          start=list(lbeta= 0.00000000288,
                                     lgamma= 0.0005),  
                          method="BFGS",
@@ -561,10 +523,8 @@ verosimilitud[[22]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[22]], intervalos[[22]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[22]], 2]-out[,3])^2)/
                length(intervalos[[22]]))
-  - sum(dnorm(bd_estimacion[intervalos[[22]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[22]] <- mle2(verosimilitud[[22]], 
+ajuste_max[[22]] <- optim(verosimilitud[[22]], 
                          start=list(lbeta= 0.000000055,
                                     lgamma= 0.00005),  
                          method="BFGS",
@@ -582,13 +542,10 @@ x0[[23]] <- c(solucionesmv[[22]][length(intervalos[[22]]), 2],
 verosimilitud[[23]] <- function(lbeta, lgamma) {
   parms <- c(beta= lbeta, 
              gamma = lgamma)
-  out <- ode(y=x0[[23]], intervalos[[23]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[23]], 2]-out[,3])^2)/
                length(intervalos[[23]]))
-  - sum(dnorm(bd_estimacion[intervalos[[23]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[23]] <- mle2(verosimilitud[[23]], 
+ajuste_max[[23]] <- optim(verosimilitud[[23]], 
                          start=list(lbeta= 0.0000000055,
                                     lgamma= 0.00005),  
                          method="BFGS",
@@ -609,10 +566,8 @@ verosimilitud[[24]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[24]], intervalos[[24]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[24]], 2]-out[,3])^2)/
                length(intervalos[[24]]))
-  - sum(dnorm(bd_estimacion[intervalos[[24]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[24]] <- mle2(verosimilitud[[24]], 
+ajuste_max[[24]] <- optim(verosimilitud[[24]], 
                          start=list(lbeta= 0.000000041,
                                     lgamma= 0.00005),  
                          method="BFGS",
@@ -633,10 +588,8 @@ verosimilitud[[25]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[25]], intervalos[[25]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[25]], 2]-out[,3])^2)/
                length(intervalos[[25]]))
-  - sum(dnorm(bd_estimacion[intervalos[[25]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[25]] <- mle2(verosimilitud[[25]], 
+ajuste_max[[25]] <- optim(verosimilitud[[25]], 
                          start=list(lbeta= 0.0000000345,
                                     lgamma= 0.00005),  
                          method="BFGS",
@@ -657,10 +610,8 @@ verosimilitud[[26]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[26]], intervalos[[26]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[26]], 2]-out[,3])^2)/
                length(intervalos[[26]]))
-  - sum(dnorm(bd_estimacion[intervalos[[26]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[26]] <- mle2(verosimilitud[[26]], 
+ajuste_max[[26]] <- optim(verosimilitud[[26]], 
                          start=list(lbeta= 0.0000000345,
                                     lgamma= 0.00005),  
                          method="BFGS",
@@ -681,10 +632,8 @@ verosimilitud[[27]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[27]], intervalos[[27]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[27]], 2]-out[,3])^2)/
                length(intervalos[[27]]))
-  - sum(dnorm(bd_estimacion[intervalos[[27]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[27]] <- mle2(verosimilitud[[27]], 
+ajuste_max[[27]] <- optim(verosimilitud[[27]], 
                          start=list(lbeta= 0.000000095,
                                     lgamma= 0.0005),  
                          method="BFGS",
@@ -705,10 +654,8 @@ verosimilitud[[28]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[28]], intervalos[[28]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[28]], 2]-out[,3])^2)/
                length(intervalos[[28]]))
-  - sum(dnorm(bd_estimacion[intervalos[[28]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[28]] <- mle2(verosimilitud[[28]], 
+ajuste_max[[28]] <- optim(verosimilitud[[28]], 
                          start=list(lbeta= 0.000000015,
                                     lgamma= 0.0005),  
                          method="BFGS",
@@ -729,10 +676,8 @@ verosimilitud[[29]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[29]], intervalos[[29]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[29]], 2]-out[,3])^2)/
                length(intervalos[[29]]))
-  - sum(dnorm(bd_estimacion[intervalos[[29]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[29]] <- mle2(verosimilitud[[29]], 
+ajuste_max[[29]] <- optim(verosimilitud[[29]], 
                          start=list(lbeta= 0.0000000195773089,
                                     lgamma= 0.0013492),  
                          method="BFGS",
@@ -753,10 +698,8 @@ verosimilitud[[30]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[30]], intervalos[[30]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[30]], 2]-out[,3])^2)/
                length(intervalos[[30]]))
-  - sum(dnorm(bd_estimacion[intervalos[[30]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[30]] <- mle2(verosimilitud[[30]], 
+ajuste_max[[30]] <- optim(verosimilitud[[30]], 
                        start=list(lbeta= 0.00000005398,
                                   lgamma= 0.001),  
                        method="BFGS",
@@ -777,10 +720,8 @@ verosimilitud[[30]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[30]], intervalos[[30]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[30]], 2]-out[,3])^2)/
                length(intervalos[[30]]))
-  - sum(dnorm(bd_estimacion[intervalos[[30]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[30]] <- mle2(verosimilitud[[30]], 
+ajuste_max[[30]] <- optim(verosimilitud[[30]], 
                          start=list(lbeta= 0.00000005398,
                                     lgamma= 0.001),  
                          method="BFGS",
@@ -801,10 +742,8 @@ verosimilitud[[31]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[31]], intervalos[[31]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[31]], 2]-out[,3])^2)/
                length(intervalos[[31]]))
-  - sum(dnorm(bd_estimacion[intervalos[[31]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[31]] <- mle2(verosimilitud[[31]], 
+ajuste_max[[31]] <- optim(verosimilitud[[31]], 
                          start=list(lbeta= 0.0000000525,
                                     lgamma= 0.001),  
                          method="BFGS",
@@ -825,10 +764,8 @@ verosimilitud[[32]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[32]], intervalos[[32]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[32]], 2]-out[,3])^2)/
                length(intervalos[[32]]))
-  - sum(dnorm(bd_estimacion[intervalos[[32]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[32]] <- mle2(verosimilitud[[32]], 
+ajuste_max[[32]] <- optim(verosimilitud[[32]], 
                          start=list(lbeta= 0.000000124,
                                     lgamma= 0.001),  
                          method="BFGS",
@@ -849,10 +786,8 @@ verosimilitud[[33]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[33]], intervalos[[33]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[33]], 2]-out[,3])^2)/
                length(intervalos[[33]]))
-  - sum(dnorm(bd_estimacion[intervalos[[33]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[33]] <- mle2(verosimilitud[[33]], 
+ajuste_max[[33]] <- optim(verosimilitud[[33]], 
                          start=list(lbeta= 0.000000128,
                                     lgamma= 0.001),  
                          method="BFGS",
@@ -873,10 +808,8 @@ verosimilitud[[34]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[34]], intervalos[[34]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[34]], 2]-out[,3])^2)/
                length(intervalos[[34]]))
-  - sum(dnorm(bd_estimacion[intervalos[[34]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[34]] <- mle2(verosimilitud[[34]], 
+ajuste_max[[34]] <- optim(verosimilitud[[34]], 
                          start=list(lbeta= 0.0000000155,
                                     lgamma= 0.0002),  
                          method="BFGS",
@@ -896,11 +829,9 @@ verosimilitud[[35]] <- function(lbeta, lgamma) {
              gamma = lgamma)
   out <- ode(y=x0[[35]], intervalos[[35]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[35]], 2]-out[,3])^2)/
-               length(intervalos[[35]]))
-  - sum(dnorm(bd_estimacion[intervalos[[35]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
+               length(intervalos[[35]))
 }
-ajuste_max[[35]] <- mle2(verosimilitud[[35]], 
+ajuste_max[[35]] <- optim(verosimilitud[[35]], 
                          start=list(lbeta= 0.000000024,
                                     lgamma= 0.0002),  
                          method="BFGS",
@@ -921,10 +852,8 @@ verosimilitud[[36]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[36]], intervalos[[36]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[36]], 2]-out[,3])^2)/
                length(intervalos[[36]]))
-  - sum(dnorm(bd_estimacion[intervalos[[36]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[36]] <- mle2(verosimilitud[[36]], 
+ajuste_max[[36]] <- optim(verosimilitud[[36]], 
                          start=list(lbeta= 0.000000256,
                                     lgamma= 0.0002),  
                          method="BFGS",
@@ -945,10 +874,8 @@ verosimilitud[[37]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[37]], intervalos[[37]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[37]], 2]-out[,3])^2)/
                length(intervalos[[37]]))
-  - sum(dnorm(bd_estimacion[intervalos[[37]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[37]] <- mle2(verosimilitud[[37]], 
+ajuste_max[[37]] <- optim(verosimilitud[[37]], 
                          start=list(lbeta= 0.0000002515,
                                     lgamma= 0.0002),  
                          method="BFGS",
@@ -969,10 +896,8 @@ verosimilitud[[38]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[38]], intervalos[[38]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[38]], 2]-out[,3])^2)/
                length(intervalos[[38]]))
-  - sum(dnorm(bd_estimacion[intervalos[[38]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[38]] <- mle2(verosimilitud[[38]], 
+ajuste_max[[38]] <- optim(verosimilitud[[38]], 
                          start=list(lbeta= 0.00000005,
                                     lgamma= 0.0000168),  
                          method="BFGS",
@@ -993,10 +918,8 @@ verosimilitud[[39]] <- function(lbeta, lgamma) {
   out <- ode(y=x0[[39]], intervalos[[39]], sir_IRA, parms)
   SD <- sqrt(sum((bd_estimacion[intervalos[[39]], 2]-out[,3])^2)/
                length(intervalos[[39]]))
-  - sum(dnorm(bd_estimacion[intervalos[[39]], 2], mean=out[,3], 
-              sd=SD, log=TRUE))
 }
-ajuste_max[[39]] <- mle2(verosimilitud[[39]], 
+ajuste_max[[39]] <- optim(verosimilitud[[39]], 
                          start=list(lbeta= 0.0000002554,
                                     lgamma= 0.000017),  
                          method="BFGS",
@@ -1163,12 +1086,10 @@ verosimilitudseir[[1]] <- function(lbeta, lupsilon, lgamma) {
              gamma = lgamma)
   out <- ode(y=x0seir[[1]], intervalos[[1]], 
              seir_IRA, parms)
-  SD <- sqrt(sum((bd_estimacion[intervalos[[1]], 2]-out[,4])^2)/
-               length(intervalos[[1]])) 
-  - sum(dnorm(bd_estimacion[intervalos[[1]], 2], mean=out[,4], 
-              sd=SD, log=TRUE))
+  SD <- sqrt(sum((bd_estimacion[intervalos[[1]], 2]-out[,3])^2)/
+               length(intervalos[[1]]))
 }
-ajuste_maxseir[[1]] <- mle2(verosimilitudseir[[1]], 
+ajuste_maxseir[[1]] <- optim(verosimilitudseir[[1]], 
                             start=list(lbeta= 0.0000001,
                                        lupsilon = 0.0043,
                                        lgamma= 0.00000005), 
@@ -1195,12 +1116,10 @@ verosimilitudseir[[2]] <- function(lbeta, lupsilon, lgamma) {
              gamma = lgamma)
   out <- ode(y=x0seir[[2]], intervalos[[2]], 
              seir_IRA, parms)
-  SD <- sqrt(sum((bd_estimacion[intervalos[[2]], 2]-out[,4])^2)/
-               length(intervalos[[2]])) 
-  - sum(dnorm(bd_estimacion[intervalos[[2]], 2], mean=out[,4], 
-              sd=SD, log=TRUE))
+  SD <- sqrt(sum((bd_estimacion[intervalos[[2]], 2]-out[,3])^2)/
+               length(intervalos[[2]]))
 }
-ajuste_maxseir[[2]] <- mle2(verosimilitudseir[[2]], 
+ajuste_maxseir[[2]] <- optim(verosimilitudseir[[2]], 
                             start=list(lbeta= 0.0000001,
                                        lupsilon = 0.000058,# 0.00400644857,
                                        lgamma= 0.00000005), 
@@ -1231,12 +1150,10 @@ verosimilitudseir[[3]] <- function(lbeta, lupsilon, lgamma) {
              gamma = lgamma)
   out <- ode(y=x0seir[[3]], intervalos[[3]], 
              seir_IRA, parms)
-  SD <- sqrt(sum((bd_estimacion[intervalos[[3]], 2]-out[,4])^2)/
-               length(intervalos[[3]])) 
-  - sum(dnorm(bd_estimacion[intervalos[[3]], 2], mean=out[,4], 
-              sd=SD, log=TRUE))
+  SD <- sqrt(sum((bd_estimacion[intervalos[[3]], 2]-out[,3])^2)/
+               length(intervalos[[3]]))
 }
-ajuste_maxseir[[3]] <- mle2(verosimilitudseir[[3]], 
+ajuste_maxseir[[3]] <- optim(verosimilitudseir[[3]], 
                             start=list(lbeta= 0.0000001,
                                        lupsilon = 0.00005,#46
                                        lgamma= 0.00000005), 
@@ -1265,12 +1182,10 @@ verosimilitudseir[[4]] <- function(lbeta, lupsilon, lgamma) {
              gamma = lgamma)
   out <- ode(y=x0seir[[4]], intervalos[[4]], 
              seir_IRA, parms)
-  SD <- sqrt(sum((bd_estimacion[intervalos[[4]], 2]-out[,4])^2)/
-               length(intervalos[[4]])) 
-  - sum(dnorm(bd_estimacion[intervalos[[4]], 2], mean=out[,4], 
-              sd=SD, log=TRUE))
+  SD <- sqrt(sum((bd_estimacion[intervalos[[4]], 2]-out[,3])^2)/
+               length(intervalos[[4]]))
 }
-ajuste_maxseir[[4]] <- mle2(verosimilitudseir[[4]], 
+ajuste_maxseir[[4]] <- optim(verosimilitudseir[[4]], 
                             start=list(lbeta= 0.0000001,
                                        lupsilon = 0.000117,#46
                                        lgamma= 0.000005), 
@@ -1299,12 +1214,10 @@ verosimilitudseir[[5]] <- function(lbeta, lupsilon, lgamma) {
              gamma = lgamma)
   out <- ode(y=x0seir[[5]], intervalos[[5]], 
              seir_IRA, parms)
-  SD <- sqrt(sum((bd_estimacion[intervalos[[5]], 2]-out[,4])^2)/
-               length(intervalos[[5]])) 
-  - sum(dnorm(bd_estimacion[intervalos[[5]], 2], mean=out[,4], 
-              sd=SD, log=TRUE))
+  SD <- sqrt(sum((bd_estimacion[intervalos[[5]], 2]-out[,3])^2)/
+               length(intervalos[[5]]))
 }
-ajuste_maxseir[[5]] <- mle2(verosimilitudseir[[5]], 
+ajuste_maxseir[[5]] <- optim(verosimilitudseir[[5]], 
                             start=list(lbeta= 0.0000001,
                                        lupsilon = 0.000085,#46
                                        lgamma= 0.000005), 
@@ -1333,12 +1246,10 @@ verosimilitudseir[[6]] <- function(lbeta, lupsilon, lgamma) {
              gamma = lgamma)
   out <- ode(y=x0seir[[6]], intervalos[[6]], 
              seir_IRA, parms)
-  SD <- sqrt(sum((bd_estimacion[intervalos[[6]], 2]-out[,4])^2)/
-               length(intervalos[[6]])) 
-  - sum(dnorm(bd_estimacion[intervalos[[6]], 2], mean=out[,4], 
-              sd=SD, log=TRUE))
+  SD <- sqrt(sum((bd_estimacion[intervalos[[6]], 2]-out[,3])^2)/
+               length(intervalos[[6]]))
 }
-ajuste_maxseir[[6]] <- mle2(verosimilitudseir[[6]], 
+ajuste_maxseir[[6]] <- optim(verosimilitudseir[[6]], 
                             start=list(lbeta= 0.0000001,
                                        lupsilon = 0.000085,#46
                                        lgamma= 0.000005), 
@@ -1367,12 +1278,10 @@ verosimilitudseir[[7]] <- function(lbeta, lupsilon, lgamma) {
              gamma = lgamma)
   out <- ode(y=x0seir[[7]], intervalos[[7]], 
              seir_IRA, parms)
-  SD <- sqrt(sum((bd_estimacion[intervalos[[7]], 2]-out[,4])^2)/
-               length(intervalos[[7]])) 
-  - sum(dnorm(bd_estimacion[intervalos[[7]], 2], mean=out[,4], 
-              sd=SD, log=TRUE))
+  SD <- sqrt(sum((bd_estimacion[intervalos[[7]], 2]-out[,3])^2)/
+               length(intervalos[[7]]))
 }
-ajuste_maxseir[[7]] <- mle2(verosimilitudseir[[7]], 
+ajuste_maxseir[[7]] <- optim(verosimilitudseir[[7]], 
                             start=list(lbeta= 0.0000001,
                                        lupsilon = 0.00025,#46
                                        lgamma= 0.00000005), 
@@ -1401,12 +1310,10 @@ verosimilitudseir[[8]] <- function(lbeta, lupsilon, lgamma) {
              gamma = lgamma)
   out <- ode(y=x0seir[[8]], intervalos[[8]], 
              seir_IRA, parms)
-  SD <- sqrt(sum((bd_estimacion[intervalos[[8]], 2]-out[,4])^2)/
-               length(intervalos[[8]])) 
-  - sum(dnorm(bd_estimacion[intervalos[[8]], 2], mean=out[,4], 
-              sd=SD, log=TRUE))
+  SD <- sqrt(sum((bd_estimacion[intervalos[[8]], 2]-out[,3])^2)/
+               length(intervalos[[8]]))
 }
-ajuste_maxseir[[8]] <- mle2(verosimilitudseir[[8]], 
+ajuste_maxseir[[8]] <- optim(verosimilitudseir[[8]], 
                             start=list(lbeta= 0.0000001,
                                        lupsilon = 0.000008,#46
                                        lgamma= 0.00000005), 
@@ -1435,12 +1342,10 @@ verosimilitudseir[[9]] <- function(lbeta, lupsilon, lgamma) {
              gamma = lgamma)
   out <- ode(y=x0seir[[9]], intervalos[[9]], 
              seir_IRA, parms)
-  SD <- sqrt(sum((bd_estimacion[intervalos[[9]], 2]-out[,4])^2)/
-               length(intervalos[[9]])) 
-  - sum(dnorm(bd_estimacion[intervalos[[9]], 2], mean=out[,4], 
-              sd=SD, log=TRUE))
+  SD <- sqrt(sum((bd_estimacion[intervalos[[9]], 2]-out[,3])^2)/
+               length(intervalos[[9]]))
 }
-ajuste_maxseir[[9]] <- mle2(verosimilitudseir[[9]], 
+ajuste_maxseir[[9]] <- optim(verosimilitudseir[[9]], 
                             start=list(lbeta= 0.0000001,
                                        lupsilon = 0.0006,#46
                                        lgamma= 0.00000005), 
@@ -1469,12 +1374,10 @@ verosimilitudseir[[10]] <- function(lbeta, lupsilon, lgamma) {
              gamma = lgamma)
   out <- ode(y=x0seir[[10]], intervalos[[10]], 
              seir_IRA, parms)
-  SD <- sqrt(sum((bd_estimacion[intervalos[[10]], 2]-out[,4])^2)/
-               length(intervalos[[10]])) 
-  - sum(dnorm(bd_estimacion[intervalos[[10]], 2], mean=out[,4], 
-              sd=SD, log=TRUE))
+  SD <- sqrt(sum((bd_estimacion[intervalos[[10]], 2]-out[,3])^2)/
+               length(intervalos[[10]]))
 }
-ajuste_maxseir[[10]] <- mle2(verosimilitudseir[[10]], 
+ajuste_maxseir[[10]] <- optim(verosimilitudseir[[10]], 
                             start=list(lbeta= 0.0000001,
                                        lupsilon = 0.0005,#46
                                        lgamma= 0.00000005), 
@@ -1503,12 +1406,10 @@ verosimilitudseir[[11]] <- function(lbeta, lupsilon, lgamma) {
              gamma = lgamma)
   out <- ode(y=x0seir[[11]], intervalos[[11]], 
              seir_IRA, parms)
-  SD <- sqrt(sum((bd_estimacion[intervalos[[11]], 2]-out[,4])^2)/
-               length(intervalos[[11]])) 
-  - sum(dnorm(bd_estimacion[intervalos[[11]], 2], mean=out[,4], 
-              sd=SD, log=TRUE))
+  SD <- sqrt(sum((bd_estimacion[intervalos[[11]], 2]-out[,3])^2)/
+               length(intervalos[[11]]))
 }
-ajuste_maxseir[[11]] <- mle2(verosimilitudseir[[11]], 
+ajuste_maxseir[[11]] <- optim(verosimilitudseir[[11]], 
                              start=list(lbeta= 0.0000001,
                                         lupsilon = 0.0005,#46
                                         lgamma= 0.00000005), 
@@ -1537,12 +1438,10 @@ verosimilitudseir[[12]] <- function(lbeta, lupsilon, lgamma) {
              gamma = lgamma)
   out <- ode(y=x0seir[[12]], intervalos[[12]], 
              seir_IRA, parms)
-  SD <- sqrt(sum((bd_estimacion[intervalos[[12]], 2]-out[,4])^2)/
-               length(intervalos[[12]])) 
-  - sum(dnorm(bd_estimacion[intervalos[[12]], 2], mean=out[,4], 
-              sd=SD, log=TRUE))
+  SD <- sqrt(sum((bd_estimacion[intervalos[[12]], 2]-out[,3])^2)/
+               length(intervalos[[12]]))
 }
-ajuste_maxseir[[12]] <- mle2(verosimilitudseir[[12]], 
+ajuste_maxseir[[12]] <- optim(verosimilitudseir[[12]], 
                              start=list(lbeta= 0.0000001,
                                         lupsilon = 0.00053,#46
                                         lgamma= 0.00000005), 
