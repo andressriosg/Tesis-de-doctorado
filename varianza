@@ -1,0 +1,71 @@
+library(ggplot2)
+# Simulación del proceso Browniano
+simulate_brownian_motion <- function(T, N) {
+  dt <- T / N
+  B <- numeric(N+1)
+  for (i in 2:(N+1)) {
+    B[i] <- B[i-1] + rnorm(1, mean = 0, sd = sqrt(dt))
+  }
+  return(B)
+}
+
+# Cálculo de la integral de la forma discreta
+integral_B_exp_B <- function(T, N) {
+  dt <- T / N
+  B <- simulate_brownian_motion(T, N)
+  integral <- numeric(N+1)
+  for (i in 2:(N+1)) {
+    integral[i] <- sum(B[2:i] * exp(-B[2:i]) * dt)
+  }
+  return(integral)
+}
+
+# Parámetros de la simulación
+T <- 10  # Tiempo final
+N <- 2000  # Número de pasos
+num_simulations <- 2000  # Número de simulaciones
+
+# Realizar simulaciones de la integral
+results <- data.frame(Time = numeric(), 
+                      Integral = numeric(), 
+                      Trajectory = numeric())
+
+for (j in 1:num_simulations) {
+  integral <- integral_B_exp_B(T, N)
+  time <- seq(0, T, length.out = N+1)
+  temp_results <- data.frame(Time = time, 
+                             Integral = integral, 
+                             Trajectory = rep(j, N+1))
+  results <- rbind(results, temp_results)
+}
+dim(results)
+
+ggplot(results, aes(x = Time, y = abs(Integral), group = Trajectory)) + 
+  geom_line(colour = "deepskyblue", size = 0.6) +  # Especifica el color gris para las líneas
+  labs(x = 'Tiempo', y = 'Integral') +  # Etiquetas de los ejes
+  ylim(0, quantile(abs(results$Integral[results$Time == T]), 0.99)) + 
+  theme_minimal() +  # Estilo minimalista
+  theme(panel.background = element_rect(fill = "white"))  # Fondo blanco
+
+library(dplyr)
+
+# Suponiendo que la variable 'results' ya tiene los resultados de las simulaciones
+
+variance_by_time <- results %>%
+  group_by(Time) %>%
+  summarise(Variance = var(Integral))
+
+# Convertir a vector (si es necesario) y mostrarlo
+variance_vector <- variance_by_time$Variance
+variance_vector
+plot(1:length(variance_vector), 
+     variance_vector, type = "l", lwd = 2)
+max(variance_vector)
+tail(variance_vector)
+
+df_var = data.frame(Tiempo = seq(0, 10, by = 0.005), 
+                    Varianza = variance_vector)
+
+ggplot(df_var, aes(x = Tiempo, y = Varianza)) + 
+  geom_line(colour = "darkmagenta", size = 0.8) +  # Especifica el color gris para las líneas
+  labs(x = 'Tiempo', y = 'Varianza') 
