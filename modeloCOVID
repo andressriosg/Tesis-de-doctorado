@@ -123,7 +123,7 @@ grafica_covidva <- ggplot() +
   geom_line(data = vacunacovid, aes(x = vacunacovid[, 1], y = vacunacovid[, 2]), 
             linewidth = 1.2, color = "#00C5CD") +
   geom_line(data = datos_finales_covid, 
-             aes(x = datos_finales_covid[, 1], y = datos_finales_covid[, 5]), 
+            aes(x = datos_finales_covid[, 1], y = datos_finales_covid[, 5]), 
             linewidth = 1.2, color = "#00F5FF") +
   labs(x = 'fecha', y = 'Número de vacunados')  + 
   scale_x_date(date_breaks = "2 months", date_labels = "%b/%y") + 
@@ -140,7 +140,7 @@ grafica_covidho <- ggplot() +
              aes(x = datos_finales_covid[,1], y = datos_finales_covid[,6]), 
              size = 1.3, color = "#FF1493") + 
   geom_line(data = df_uci_gg , 
-             aes(x = df_uci_gg[, 1], y = df_uci_gg[, 2]), 
+            aes(x = df_uci_gg[, 1], y = df_uci_gg[, 2]), 
             linewidth =  1.2, color = "#8B0A50") +
   labs(x = 'fecha', y = 'Número de hospitalizados')  + 
   scale_x_date(date_breaks = "3 months", date_labels = "%b/%y") 
@@ -156,7 +156,7 @@ data.frame(pob_covid_tot$p)[731:1461, 1]
 # lambda_covid = data.frame(pob_covid_tot$p)[796:(795+658), 1] - 
 #   data.frame(pob_covid_tot$p)[795:(795+657), 1]
 
-lambda_covid = max(na.omit(delta_pob))/7
+lambda_covid = mean(na.omit(delta_pob))/7
 
 mu_epocovid = (data.frame(pob_covid_tot$p)[796:(795+657), 1] - 
                  data.frame(pob_covid_tot$p)[795:(795+656), 1] + lambda_covid)/data.frame(pob_covid_tot$p)[795:(795+656), 1]
@@ -168,8 +168,8 @@ plot(mu_covid[3:656], type = "l", lwd = 2)
 
 gamma_hosp = 1/((12+14)/2)
 
-eta_covid = abs(((datos_finales_covid$UCI[2:657] - datos_finales_covid$UCI[1:656] + 
-                    (gamma_hosp + mu_epocovid[1:656] + mu_covid[1:656])*datos_finales_covid$UCI[1:656]))/datos_finales_covid$UCI[1:656])
+eta_covid = ((datos_finales_covid$UCI[2:657] - datos_finales_covid$UCI[1:656] + 
+                    (gamma_hosp + mu_epocovid[1:656] + mu_covid[1:656])*datos_finales_covid$UCI[1:656]))/datos_finales_covid$UCI[1:656]
 plot(eta_covid[2:656], lwd = 2, type = "l")
 # (0.0044 + 0.0078)/(0.0044 + 0.0078 + 0.0005) # + 0.0005
 gamma_inf = 1/(0.96063*((7+15)/2) + 0.03937*((15+60)/2)) # leve 1-2 sem, grave = 2-8 sem
@@ -178,7 +178,7 @@ zeta = 1/5.08 # ((7+14)/2) # 5.08# 1/((2+14)/2) # 7 a 14 dias incubacion
 xi = 0.88 # 88% son sintomáticos
 expuestos_covid = (datos_finales_covid$Infectados[2:657] - 
                      datos_finales_covid$Infectados[1:656] + 
-                     (gamma_inf + abs(mu_covid) + mu_epocovid[1:656])*datos_finales_covid$Infectados[1:656])/(zeta*xi)
+                     (gamma_inf + mu_covid + mu_epocovid[1:656])*datos_finales_covid$Infectados[1:656])/(zeta*xi)
 mean(expuestos_covid)
 plot(expuestos_covid, lwd = 2, type = "l") # Los expuestos dan 
 # valores negativos 
@@ -242,8 +242,8 @@ for (j in 2:657){
     (mu_epocovid[j] + gamma_asi)*covid_asisua[(j-1)] - gamma_asin.asinto[(j-1)]
 }
 plot(abs(covid_asisua), type = "l", lwd = 2)
-gamma_a = abs(gamma_asin.asinto[1:655]/covid_asisua[1:655])
-plot(gamma_a[7:655], lwd = 2, type = "l")
+# gamma_a = abs(gamma_asin.asinto[1:655]/covid_asisua[1:655])
+# plot(gamma_a[7:655], lwd = 2, type = "l")
 
 datos_pob_covid = data.frame(pob_covid_tot$p)[795:(795+657), 1]
 covid_sussua = datos_pob_covid[1:657] - expuestos_covid1[1:657] - 
@@ -275,60 +275,8 @@ grafica_covidas <- ggplot(data = datos_covid_suaves) +
   scale_x_date(date_breaks = "3 months", date_labels = "%b/%y")
 
 # Para estimar beta 
-
-matrizX_covid = list()
-matrizY_covid = list()
-for (k in 1:372){
-  matrizX_covid[[k]] = matrix(c(covid_sussua[10]*covid_asisua[10],
-                                - covid_sussua[k]*covid_asisua[k],
-                               covid_sussua[k]*covid_infsua[k],
-                               - covid_sussua[k]*covid_infsua[k]),
-                             2, 2)
-  matrizY_covid[[k]] = matrix(c(covid_sussua[k] - covid_sussua[(k+1)] + 
-                                  lambda_covid[k] - 
-                                  (rho_covid[k] + mu_epocovid[k])*covid_sussua[k], 
-                                covid_expsua[k] - covid_expsua[(k+1)] -
-                                  (rho_covid[k] + mu_epocovid[k] + zeta)*covid_sussua[k]))
-}
-
-for (k in 373:656){
-  matrizX_covid[[k]] = matrix(c(covid_sussua[k]*covid_asisua[k], 
-                               covid_sussua[k]*covid_infsua[k], 0,  
-                               - covid_sussua[k]*covid_asisua[k], 
-                               - covid_sussua[k]*covid_infsua[k], 
-                               - (covid_vacsua[k]*covid_asisua[k]+ 
-                                    covid_vacsua[k]*covid_infsua[k]), 
-                               0, 0, (covid_vacsua[k]*covid_asisua[k] +
-                                        covid_vacsua[k]*covid_infsua[k])),
-                               3, 3)
-  matrizY_covid[[k]] = matrix(c(covid_sussua[k] - covid_sussua[(k+1)] + 
-                                  lambda_covid[k] - 
-                                  (rho_covid[k] + mu_epocovid[k])*covid_sussua[k], 
-                                covid_expsua[k] - covid_expsua[(k+1)] -
-                                  (rho_covid[k] + mu_epocovid[k] + zeta)*covid_sussua[k],
-                                covid_vacsua[k] - covid_vacsua[(k+1)] +
-                                  vac[k]*covid_sussua[k] + vac[k]*covid_expsua[k] + 
-                                  vac[k]*covid_asisua[k] - mu_epocovid[k]*covid_vacsua[k]), 
-  )
-}
-
-beta_covid = list()
-for (j in 1:372){
-  beta_covid[[j]] = NULL
-}
-for (j in 373:655){
-  beta_covid[[j]] = solve(matrizX_covid[[10]], matrizY_covid[[10]])
-}
-
-beta_covid1 = (covid_sussua[2:656] - covid_sussua[1:655] - 
-  lambda_covid + (rho_covid[1:655] + mu_epocovid[1:655])*covid_sussua[2:656])/
-  (-(covid_sussua[2:656]*covid_asisua[2:656] + 
-       covid_sussua[2:656]*covid_infsua[2:656]))
-plot(beta_covid1, pch = 20)
-# 6.150768e-08
-
 beta_covid2 = (covid_expsua[2:656] - covid_expsua[1:655] + 
-  (rho_covid[1:655] + mu_epocovid[1:655] + zeta)*covid_expsua[1:655])/
+                 (rho_covid[1:655] + mu_epocovid[1:655] + zeta)*covid_expsua[1:655])/
   (covid_sussua[1:655]*covid_asisua[1:655] + covid_infsua[1:655]*covid_sussua[1:655])
 plot(abs(beta_covid2[1:655]), pch = 20)
 
@@ -337,8 +285,7 @@ R0covid = (abs(beta_covid2)*zeta*xi*max(na.omit(delta_pob))/7)/
      (mu_epocovid[1:655] + eta_covid1[1:655] + gamma_inf)) + 
   (abs(beta_covid2)*zeta*(1-xi)*max(na.omit(delta_pob))/7)/
   (mu_epocovid[1:655]*(rho_covid[1:655] + mu_epocovid[1:655] + zeta)*
-     (mu_epocovid[1:655] + gamma_asi + rho_covid[1:655])) # gamma_inf mayor 
-# mean(lambda_covid[1:655])/70 xi es la proporcion de sintomáticos 
+     (mu_epocovid[1:655] + gamma_asi + rho_covid[1:655])) 
 
 plot(R0covid, ylim = c(0,1))
 
@@ -417,18 +364,16 @@ for (i in 1:10){
 esti_varianza_covid
 sqrt(abs(esti_varianza_covid))
 
-sol_covid[[5]]
-
 k1 = (rho_covid[1:655] + mu_epocovid[1:655] + zeta)*
   (mu_epocovid[1:655] + gamma_asi + rho_covid[1:655])
 k2 = (rho_covid[1:655] + mu_epocovid[1:655] + zeta)*
   (mu_epocovid[1:655] + eta_covid1[1:655] + gamma_inf)
 
-var_sa = (lambda_covid/mu_epocovid[1:655])*((1-xi)^2*(((beta_covid2[1:655])^2*2.502867e-01^2 + zeta^2*6.337901e-06^2)/(k1^3) + 
-                      2.502867e-01^2*6.337901e-06^2/(2*k1^4)))
-var_si = (lambda_covid/mu_epocovid[1:655])*(xi^2*(((beta_covid2[1:655])^2*2.502867e-01^2 + zeta^2*6.337901e-06^2)/k2^3 + 
-                  2.502867e-01^2*6.337901e-06^2/(2*k2^4)))
-cov_sasi = (lambda_covid/mu_epocovid[1:655])*2*beta_covid2[1:655]^2*2.502867e-01^2*xi*(1-xi)/(k1*k2*(k1+k2))
+var_sa = (lambda_covid/mu_epocovid[1:655])^2*((1-xi)^2*(((beta_covid2[1:655])^2*2.502867e-01^2 + zeta^2*6.337901e-06^2)/(k1^3) + 
+                                                        2.502867e-01^2*6.337901e-06^2/(2*k1^4)))
+var_si = (lambda_covid/mu_epocovid[1:655])^2*(xi^2*(((beta_covid2[1:655])^2*2.502867e-01^2 + zeta^2*6.337901e-06^2)/k2^3 + 
+                                                    2.502867e-01^2*6.337901e-06^2/(2*k2^4)))
+cov_sasi = (lambda_covid/mu_epocovid[1:655])^2*2*beta_covid2[1:655]^2*2.502867e-01^2*xi*(1-xi)/(k1*k2*(k1+k2))
 
 var_R0covid = var_sa+var_si + cov_sasi
 plot(var_R0covid, type = "l")
