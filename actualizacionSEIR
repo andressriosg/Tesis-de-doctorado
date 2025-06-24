@@ -237,9 +237,9 @@ for (i in 2:640) {
     ((1/0.6193) + actu_mu[i])*datos_expuestosseir[(i-1)]
   media_iseir[i] = datos_infectadosseir[(i-1)] +
     (1/0.6193)*datos_expuestosseir[(i-1)] -
-    ((1/5.2) + actu_mu[i])*datos_infectadosseir[(i-1)] 
+    ((1/2.5) + actu_mu[i])*datos_infectadosseir[(i-1)] 
   media_rseir[i] = datos_recuperadosseir[(i-1)] +
-    (1/5.2)*datos_infectadosseir[(i-1)] -
+    (1/2.5)*datos_infectadosseir[(i-1)] -
     actu_mu[i]*datos_recuperadosseir[(i-1)]
 }
 
