@@ -365,37 +365,102 @@ grafica_r0_varsir
 
 ## Cuando la mortalidad varia: 
 
-R0_1actuseir01 = actu_lambda*(1/0.6193)*acti_betaseir[1:531]/
-  (actu_mu[1:531]*((1/2.5) + actu_mu[1:531])*((1/0.6193) + 
-                                    actu_mu[1:531]))
-datos_r0actseir01 = data.frame((as.Date(dias_antes) + 3)[1:531], 
-                             R0_1actuseir01[1:531])
-library(ggplot2)
-grafica_r0_actiseir01 <- ggplot(data = datos_r0actseir01) + 
-  geom_line(aes(x = datos_r0actseir01[, 1], y = datos_r0actseir01[, 2]), color = "purple3",
+R0_1actu01 = actu_lambda*beta_acti[1:531]/(actu_mu[1:531]*((1/2.5) + 
+                                                             actu_mu[1:531]))
+plot(R0_1actu01, pch = 20, cex = 0.4)
+which(R0_1actu01 > 1)
+(as.Date(dias_antes) + 3)[202]
+
+datos_r0act01 = data.frame((as.Date(dias_antes) + 3)[1:531], 
+                           R0_1actu01[1:531])
+grafica_r0_acti01 <- ggplot(data = datos_r0act01) + 
+  geom_line(aes(x = datos_r0act01[, 1], y = datos_r0act01[, 2]), color = "purple3",
             linewidth = 1.2) +
   #   geom_vline(xintercept = (as.Date(dias_antes) + 3)[puntos_corte[1:32]], 
   #              color = "deepskyblue3", linewidth = 0.3) + 
+  geom_hline(yintercept = 1, 
+             color = "red4", linewidth = 0.5) + 
   geom_hline(yintercept = 1, col = "red4", linewidth = 0.8) + 
-  #  geom_hline(yintercept = 1, col = "red4", linewidth = 0.5) + 
+  geom_vline(xintercept = (as.Date(dias_antes) + 3)[628], col = "red") +
   labs(x = 'Tiempo (Semanas epidemiológicas)', y = expression(R[0,i]))  + 
   scale_x_date(date_breaks = "2 years", date_labels = "%Y") 
-grafica_r0_actiseir01
+grafica_r0_acti01
 
-R0estocasticoseir0111 = ((acti_betaseir[1:530]^2*abs(sigma_v201)) + 
-                         ((1/0.6193)^2*sigma_beta201))*actu_lambda^2/
-  (2*actu_mu[1:530]^2*(actu_mu[1:530] + (1/2.5))^3*(actu_mu[1:530] + (1/0.6193))^3) + 
-  abs(sigma_beta201)*abs(sigma_v201)*actu_lambda^2/
-  (2*actu_mu[1:530]^2*(actu_mu2 + (1/2.5))^4*(actu_mu[1:530] + (1/0.6193))^4)
+R0estocasticosir0111 = abs(sigma_beta201)*actu_lambda^2/
+  (2*actu_mu[1:530]^2*(actu_mu[1:530] + (1/2.5))^3)
+plot(R0estocasticosir0111, pch = 20)
+which(R0estocasticosir0111 > 1)
 
-datos_r0varseir0111 = data.frame((as.Date(dias_antes) + 3)[1:530], 
-                               sqrt(R0estocasticoseir0111))
+datos_r0varsir0111 = data.frame(tiempo = (as.Date(dias_antes) + 3)[1:530], 
+                                valor = sqrt(R0estocasticosir0111))
+grafica_r0_varsir11 <- ggplot(data = datos_r0varsir0111, aes(x = tiempo, y = valor)) +
+  geom_line(color = "darkolivegreen", linewidth = 1.2) +
+  labs(
+    x = "Tiempo (Semanas epidemiológicas)",
+    y = expression(sqrt(Var(R[0,i])))
+  ) +
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
+  theme_gray(base_size = 13)    # <-- el fondo como en tu imagen
 
-grafica_r0_varseir0111 <- ggplot(data = datos_r0varseir0111) + 
-  geom_line(aes(x = datos_r0varseir0111[, 1], y = datos_r0varseir0111[, 2]), color = "darkolivegreen",
-            linewidth = 1.2) +
-  #   geom_vline(xintercept = (as.Date(dias_antes) + 3)[puntos_corte[1:32]], 
-  #              color = "deepskyblue3", linewidth = 0.3) + 
-  labs(x = 'Tiempo (Semanas epidemiológicas)', y = expression(sqrt(Var(R[0,i]))))  + 
-  scale_x_date(date_breaks = "2 years", date_labels = "%Y") 
-grafica_r0_varseir0111
+grafica_r0_varsir11
+
+plot(datos_r0varsir01[,2], lwd = 2, type = "l")
+lines(datos_r0varsir0111[,2], lwd = 2, col = "red")
+
+## Respuesta profe Fredy: 
+gamma33 <- seq(0.2, 0.5, by = 0.01)
+
+# Inicializar listas
+actu_betas33 <- vector("list", length(gamma33))
+acti_susceptibles33 <- vector("list", length(gamma33))
+
+# Bucle principal
+for (j in seq_along(gamma33)) {
+  
+  # Inicializar vectores
+  actu_betas33[[j]] <- numeric(745)
+  acti_susceptibles33[[j]] <- numeric(745)
+  
+  # Valor inicial de S
+  acti_susceptibles33[[j]][1] <- x0[[1]][1]
+  
+  # Calcular beta(t)
+  for (i in 1:745) {
+    actu_betas33[[j]][i] <-
+      (
+        -sua_poblacion[i + 1, 3] +
+          sua_poblacion[i, 3] +
+          sua_datos_mod_SIRSEIR_df[i + 1, 1] -
+          sua_datos_mod_SIRSEIR_df[i, 1] +
+          actu_lambda -
+          actu_mu2 * (sua_poblacion[i, 3] - sua_datos_mod_SIRSEIR_df[i, 1])
+      ) / sua_datos_mod_SIRSEIR_df[i, 1] + gamma33[j]
+  }
+  
+  # Calcular susceptibles S(t)
+  for (i in 2:745) {
+    acti_susceptibles33[[j]][i] <- acti_susceptibles33[[j]][i - 1] +
+      actu_lambda -
+      actu_betas33[[j]][i] * sua_datos_mod_SIRSEIR_df[i - 1, 1] -
+      actu_mu2 * acti_susceptibles33[[j]][i - 1]
+  }
+}
+
+colores <- rainbow(length(gamma33))
+
+# Gráfico base con la primera trayectoria
+plot(
+  acti_susceptibles33[[1]][1:300],
+  type = "l",
+  lwd = 2,
+  col = colores[1],
+  xlab = "Semana epidemiológica",
+  ylab = "Susceptibles",
+  main = expression("Evolución de S(t) para diferentes valores de " * gamma[33]), 
+  ylim = c(0, max(acti_susceptibles33[[1]]))
+)
+
+# Agregar las demás trayectorias
+for (j in 2:length(gamma33)) {
+  lines(acti_susceptibles33[[j]][1:300], col = colores[j], lwd = 1.5)
+}
